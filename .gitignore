@@ -3,6 +3,7 @@
 !**/.env.example
 !**/.env.supabase.example
 **/target/
+database/backups/
 **/*.log
 .DS_Store
 .github/modernize/

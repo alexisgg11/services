@@ -26,7 +26,7 @@ Java 25, PostgreSQL y una interfaz web para gestionar productos, proveedores, ti
    ```dotenv
    DB_URL=jdbc:postgresql://localhost:5432/panaderia_abastecimiento
    DB_USER=TU_USUARIO
-   DB_PASSWORD=TU_CONTRASEÑA
+   DB_PASSWORD="TU_CONTRASEÑA"
    APP_HOST=127.0.0.1
    PORT=8080
    ```

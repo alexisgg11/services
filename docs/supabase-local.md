@@ -22,7 +22,7 @@ En Supabase abre **Connect → Session pooler**. Copia el host y usuario exactos
 ```dotenv
 DB_URL=jdbc:postgresql://HOST_SESSION_POOLER:5432/postgres?sslmode=require
 DB_USER=postgres.REFERENCIA_PROYECTO
-DB_PASSWORD=TU_CONTRASEÑA_DE_LA_BASE
+DB_PASSWORD="TU_CONTRASEÑA_DE_LA_BASE"
 APP_HOST=127.0.0.1
 PORT=8080
 DB_POOL_SIZE=5
@@ -31,6 +31,8 @@ DB_QUERY_TIMEOUT_SECONDS=10
 ```
 
 Sustituye los marcadores por los valores reales. Para la conexión JDBC no se necesitan claves `anon` ni `service_role`. El pooler de sesión admite IPv4; la conexión directa gratuita usa IPv6. [Documentación oficial](https://supabase.com/docs/guides/database/connecting-to-postgres)
+
+Conserva la contraseña original entre comillas: un `#` sin comillas puede interpretarse como comentario. No la codifiques como URL, porque JDBC la recibe por separado. Después de restablecerla, el pooler puede rechazarla temporalmente mientras se aplica el cambio.
 
 Git ignora `.env` y `.env.supabase`, pero publica sus plantillas sin credenciales. Las variables del sistema tienen prioridad sobre los archivos: elimina los valores globales de conexión si están sobrescribiendo la base que seleccionaste.
 

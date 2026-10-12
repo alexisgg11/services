@@ -12,4 +12,4 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-      - run: mvn -B -f contactosdb/pom.xml clean verify
+      - run: mvn -B -f abastecimiento/pom.xml clean verify

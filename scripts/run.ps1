@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$moduleDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../contactosdb'))
+$moduleDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../abastecimiento'))
 Set-Location -LiteralPath $moduleDirectory
 $mavenCommand = Get-Command mvn -ErrorAction SilentlyContinue
 if ($mavenCommand) { $mavenExecutable = $mavenCommand.Source }
@@ -22,6 +22,6 @@ try {
     & $mavenExecutable clean package dependency:copy-dependencies '-DincludeScope=runtime'
     if ($LASTEXITCODE -ne 0) { throw 'Falló la compilación o las pruebas.' }
     $socketDirectory = Join-Path $moduleDirectory 'target'
-    & java "-Djdk.net.unixdomain.tmpdir=$socketDirectory" -cp 'target/contactosdb-1.0-SNAPSHOT.jar;target/dependency/*' com.alexis.App
+    & java "-Djdk.net.unixdomain.tmpdir=$socketDirectory" -cp 'target/abastecimiento-1.0-SNAPSHOT.jar;target/dependency/*' com.alexis.App
     if ($LASTEXITCODE -ne 0) { throw 'La aplicación no pudo arrancar. Revisa .env y PostgreSQL.' }
 } finally { $env:JAVA_HOME = $previousJavaHome }

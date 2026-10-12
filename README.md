@@ -18,10 +18,10 @@ Java 25, PostgreSQL y una interfaz web para gestionar productos, proveedores, ti
 3. Copia la plantilla si todavía no tienes `.env`:
 
    ```powershell
-   Copy-Item contactosdb/.env.example contactosdb/.env
+   Copy-Item abastecimiento/.env.example abastecimiento/.env
    ```
 
-   Completa `contactosdb/.env` con tu conexión. Si ya existe, edítalo sin sobrescribir tus credenciales:
+   Completa `abastecimiento/.env` con tu conexión. Si ya existe, edítalo sin sobrescribir tus credenciales:
 
    ```dotenv
    DB_URL=jdbc:postgresql://localhost:5432/panaderia_abastecimiento
@@ -45,7 +45,7 @@ El script compila, ejecuta las pruebas y arranca con el JDK de `java`. Si cambia
 
 ```powershell
 # Con JAVA_HOME apuntando al JDK 25:
-mvn -f contactosdb/pom.xml clean test
+mvn -f abastecimiento/pom.xml clean test
 # Con el servidor ejecutándose; crea y elimina un producto temporal:
 .\scripts\test-api.ps1 -BaseUrl http://127.0.0.1:8080
 ```
@@ -54,7 +54,7 @@ mvn -f contactosdb/pom.xml clean test
 
 ```text
 services/
-  contactosdb/                 Módulo Maven original
+  abastecimiento/                 Aplicación de abastecimiento
     .env.example              Plantilla; .env real se ignora
     pom.xml
     src/main/java/com/alexis/
@@ -78,4 +78,4 @@ services/
 - [Endpoints y paginación](docs/api.md)
 - [Despliegue en Render](docs/despliegue.md)
 
-El proyecto conserva el nombre histórico `contactosdb` para reutilizar el módulo original. La interfaz utiliza HTML/CSS/JavaScript; está inspirada en shadcn/ui. **Admin** es la etiqueta del menú, no una sesión autenticada. Este alcance es una demostración académica.
+La interfaz utiliza HTML/CSS/JavaScript; está inspirada en shadcn/ui. **Admin** es la etiqueta del menú, no una sesión autenticada. Este alcance es una demostración académica.

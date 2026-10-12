@@ -114,7 +114,6 @@ form > label, .form-grid > label { display: flex; flex-direction: column; gap: 8
 @media (max-width: 720px) {
   .sidebar { position: static; width: 100%; padding: 16px; border-right: 0; border-bottom: 1px solid #ddd; }
   .brand { font-size: 21px; }
-  .brand-mark { height: 33px; width: 33px; font-size: 27px; line-height: 28px; }
   .sidebar-bottom { display: none; }
   .sidebar > nav { display: flex; margin-top: 15px; gap: 3px; }
   .nav-button { font-size: 11px; padding: 9px; justify-content: center; gap: 5px; }

@@ -1,91 +1,168 @@
 # Cogas · Abastecimiento de panadería
 
-Java 25, PostgreSQL y una interfaz web para gestionar productos, proveedores, tipos y unidades. Incluye 50 productos de ejemplo y tres servicios de consulta.
+Aplicación web con Java 25 y PostgreSQL. Permite registrar, editar, eliminar y buscar productos, consultar proveedores, tipos y unidades, y ejecutar tres servicios: producto más caro, productos por proveedor y productos por tipo.
 
-## Instalación en Windows
+La base inicial contiene cuatro tablas y 50 productos. Los proveedores, tipos y unidades se consultan y seleccionan; no tienen formularios de registro o edición.
 
-**Requisitos:** JDK 25, Maven 3.9, PostgreSQL y PowerShell 7. `java` y `mvn` deben estar en PATH.
+## 1. Preparar el equipo
 
-1. Clona el repositorio y entra en la carpeta:
+- JDK 25 y Maven 3.9 o posterior. Configura `java` y `mvn` en el PATH y `JAVA_HOME` con la carpeta del JDK 25.
+- Windows PowerShell 5.1 o PowerShell 7 para iniciar la aplicación. Las pruebas de API requieren PowerShell 7 (`pwsh`).
+- PostgreSQL y pgAdmin si usarás la base local. Para Supabase necesitas Internet y un proyecto con PostgreSQL activo.
+
+```powershell
+java -version
+mvn -version
+```
+
+Ambos comandos deben indicar Java 25.
+
+Clona el repositorio y entra en su carpeta:
+
+```powershell
+git clone https://github.com/alexisgg11/services.git
+cd services
+```
+
+Los comandos siguientes se ejecutan desde **services**, donde están `scripts`, `database` y `abastecimiento`. Si la terminal está dentro de `abastecimiento`, ejecuta `cd ..`.
+
+## 2. Configurar la base local
+
+1. En pgAdmin, abre Query Tool sobre la base `postgres` y ejecuta [database/00_crear_base.sql](database/00_crear_base.sql).
+2. Abre Query Tool sobre la nueva base **panaderia_abastecimiento** y ejecuta [database/01_tablas_y_datos.sql](database/01_tablas_y_datos.sql).
+3. Copia la plantilla solo si todavía no existe tu archivo privado:
 
    ```powershell
-   git clone https://github.com/alexisgg11/services.git
-   cd services
+   if (-not (Test-Path abastecimiento/.env)) {
+       Copy-Item abastecimiento/.env.example abastecimiento/.env
+   }
    ```
 
-2. En pgAdmin, conectado a `postgres`, ejecuta [database/00_crear_base.sql](database/00_crear_base.sql). Después abre Query Tool en **panaderia_abastecimiento** y ejecuta [database/01_tablas_y_datos.sql](database/01_tablas_y_datos.sql).
-
-3. Copia la plantilla si todavía no tienes `.env`:
-
-   ```powershell
-   Copy-Item abastecimiento/.env.example abastecimiento/.env
-   ```
-
-   Completa `abastecimiento/.env` con tu conexión. Si ya existe, edítalo sin sobrescribir tus credenciales:
+4. Edita `abastecimiento/.env`:
 
    ```dotenv
    DB_URL=jdbc:postgresql://localhost:5432/panaderia_abastecimiento
-   DB_USER=TU_USUARIO
+   DB_USER=TU_USUARIO_POSTGRES
    DB_PASSWORD="TU_CONTRASEÑA"
    APP_HOST=127.0.0.1
    PORT=8080
+   DB_POOL_SIZE=5
+   HTTP_THREADS=8
+   DB_QUERY_TIMEOUT_SECONDS=10
    ```
 
-4. Ejecuta desde la raíz:
+Sustituye usuario y contraseña por los de PostgreSQL local. Conserva la contraseña entre comillas, especialmente si contiene `#`. No vuelvas a cargar los datos iniciales si ya tienes la base preparada.
+
+## 3. Configurar Supabase
+
+El backend y la interfaz siguen ejecutándose en tu equipo; solo PostgreSQL está en Supabase. Conserva el archivo `.env` y tu base local.
+
+1. Crea tu proyecto en Supabase. Para una base nueva, ejecuta `database/01_tablas_y_datos.sql` en SQL Editor. No ejecutes `00_crear_base.sql`: Supabase ya tiene una base llamada `postgres`. Si ya migraste tus datos, omite este paso.
+2. Copia la plantilla si el archivo privado todavía no existe:
 
    ```powershell
-   .\scripts\run.ps1
+   if (-not (Test-Path abastecimiento/.env.supabase)) {
+       Copy-Item abastecimiento/.env.supabase.example abastecimiento/.env.supabase
+   }
    ```
 
-5. Abre **http://127.0.0.1:8080**. Detén el servidor con `Ctrl+C`.
+3. En Supabase abre **Connect → Session pooler** y copia el host y usuario de tu proyecto. Edita `abastecimiento/.env.supabase`:
 
-El script compila, ejecuta las pruebas y arranca con el JDK de `java`. Si cambias `.env`, reinicia el servidor. Si cambias `PORT`, usa ese puerto en el navegador. La aplicación no crea tablas ni carga datos al arrancar.
+   ```dotenv
+   DB_URL=jdbc:postgresql://HOST_SESSION_POOLER:5432/postgres?sslmode=require
+   DB_USER=postgres.REFERENCIA_PROYECTO
+   DB_PASSWORD="TU_CONTRASEÑA_DE_LA_BASE"
+   APP_HOST=127.0.0.1
+   PORT=8080
+   DB_POOL_SIZE=5
+   HTTP_THREADS=8
+   DB_QUERY_TIMEOUT_SECONDS=10
+   ```
 
-## Backend local con Supabase
+Usa la contraseña original de la base, entre comillas y sin codificación porcentual: JDBC la recibe por separado. No necesitas claves de la Data API. Los archivos `.env` y `.env.supabase` están excluidos de Git.
 
-Conserva `abastecimiento/.env` para PostgreSQL local. Para la base de Supabase, sigue [esta guía](docs/supabase-local.md) y usa un archivo separado:
+Para trasladar una base existente, sigue [la guía de Supabase](docs/supabase-local.md). Las bases local y Supabase no se sincronizan automáticamente. Las variables del sistema tienen prioridad sobre los archivos de configuración.
+
+## 4. Iniciar y detener Cogas
+
+**Con PostgreSQL local encendido:**
+
+```powershell
+.\scripts\run.ps1 -BaseDatos Local
+```
+
+**Con PostgreSQL en Supabase:**
 
 ```powershell
 .\scripts\run.ps1 -BaseDatos Supabase
 ```
 
-Para volver a PostgreSQL local, detén el servidor y ejecuta `scripts/run.ps1` sin parámetros. Las bases no se sincronizan automáticamente.
+El script selecciona el archivo de conexión, compila, ejecuta las pruebas y arranca Java. No inicia PostgreSQL, no crea tablas ni vuelve a insertar los datos.
 
-## Pruebas
+Abre [Cogas](http://127.0.0.1:8080/). Deja la terminal abierta mientras utilices el sistema. Si cambias `PORT`, usa ese puerto en el navegador.
+
+Para detener el servidor, pulsa **Ctrl + C** en la terminal donde lo iniciaste. Para cambiar de Local a Supabase o al revés, detén el servidor y ejecuta el otro comando. Reinicia también cuando cambies código o configuración. No necesitas ejecutar el script por cada consulta.
+
+## 5. Probar el sistema
+
+### Pruebas del backend
+
+Con el servidor detenido y `JAVA_HOME` apuntando al JDK 25:
 
 ```powershell
-# Con JAVA_HOME apuntando al JDK 25:
 mvn -f abastecimiento/pom.xml clean test
-# Con el servidor ejecutándose; crea y elimina un producto temporal:
-.\scripts\test-api.ps1 -BaseUrl http://127.0.0.1:8080
 ```
+
+Actualmente hay **19 pruebas** de configuración, validaciones, servicios y serialización JSON. El resultado esperado es `BUILD SUCCESS`, sin errores ni fallos.
+
+### Pruebas de API
+
+Inicia Cogas en el modo que quieras comprobar. En **otra terminal**, desde `services`, ejecuta:
+
+```powershell
+pwsh -NoProfile -File .\scripts\test-api.ps1 -BaseUrl http://127.0.0.1:8080
+```
+
+Comprueba conexión, paginación, búsqueda parametrizada, resumen, tres servicios y registro, edición y eliminación. Crea un producto temporal y lo elimina al terminar; conserva los productos existentes. El resultado esperado empieza con `API verificada`.
+
+### Prueba desde la interfaz
+
+1. Registra un producto con descripción, precio, tipo, proveedor y unidad. Comprueba el aviso de registro exitoso.
+2. Edita ese producto y comprueba el aviso de actualización.
+3. Prueba campos vacíos y precios inválidos: negativos, más de dos decimales, coma decimal o notación científica. Deben mostrarse errores y no guardarse los cambios.
+4. Consulta el producto más caro y filtra por proveedor y tipo. Comprueba resultados, mensajes y paginación.
+5. Elimina el producto de prueba: primero aparece una confirmación y después el aviso de eliminación.
+
+La descripción admite entre 1 y 150 caracteres, sin caracteres de control. El precio admite de 0 a 99 999 999.99, con punto decimal y hasta dos decimales. Tipo, proveedor y unidad deben corresponder a registros existentes. Las restricciones se aplican al registrar y editar, en la interfaz y en el backend.
 
 ## Estructura
 
 ```text
 services/
-  abastecimiento/                 Aplicación de abastecimiento
-    .env.example              Plantilla; .env real se ignora
-    pom.xml
+  abastecimiento/
+    .env.example              Plantilla para PostgreSQL local
+    .env.supabase.example     Plantilla para Supabase
+    pom.xml                   Dependencias y compilación con Java 25
     src/main/java/com/alexis/
-      App.java                Arranque y cierre
-      config/                 Entorno validado y pool JDBC
+      App.java                Arranque y cierre del servidor
+      config/                 Configuración y pool de conexiones
       model/                  Entidades y respuestas paginadas
-      repository/             SQL parametrizado
-      service/                Validaciones y reglas
-      controller/             API HTTP
+      controller/             Peticiones y respuestas HTTP
+      service/                Validaciones y reglas de negocio
+      repository/             Consultas SQL parametrizadas
       util/                   Serialización JSON
-    src/main/resources/view/  HTML, CSS y JavaScript
-    src/test/java/com/alexis/  Pruebas
-  database/                   SQL de instalación
-  scripts/                    Ejecución y verificación de API
+    src/main/resources/view/  Interfaz HTML, CSS y JavaScript
+    src/test/java/com/alexis/  Pruebas del backend
+  database/                   Creación de tablas y datos iniciales
+  scripts/                    Arranque y pruebas de API
   docs/                       Arquitectura, API y despliegue
-  Dockerfile
-  render.yaml
+  Dockerfile                  Empaquetado para despliegue
+  render.yaml                 Configuración de Render
 ```
 
-- [Arquitectura y buenas prácticas](docs/arquitectura.md)
-- [Endpoints y paginación](docs/api.md)
+- [Arquitectura](docs/arquitectura.md)
+- [API y servicios](docs/api.md)
+- [Backend local con Supabase](docs/supabase-local.md)
 - [Despliegue en Render](docs/despliegue.md)
 
-La interfaz utiliza HTML/CSS/JavaScript; está inspirada en shadcn/ui. **Admin** es la etiqueta del menú, no una sesión autenticada. Este alcance es una demostración académica.
+Cogas es una aplicación por capas que expone una API HTTP. El alcance actual no incluye autenticación, compras ni movimientos de stock; **Admin** es una etiqueta del menú.

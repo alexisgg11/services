@@ -45,7 +45,7 @@ Detén el servidor que ya esté usando el puerto antes de cambiar de base. Despu
 .\scripts\run.ps1 -BaseDatos Supabase
 
 # Volver a Java y PostgreSQL locales:
-.\scripts\run.ps1
+.\scripts\run.ps1 -BaseDatos Local
 ```
 
 Ambos modos entregan la interfaz en `http://127.0.0.1:8080`, salvo que configures otro puerto. El modo Supabase necesita Internet y un proyecto activo; no requiere que PostgreSQL local esté encendido.

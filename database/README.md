@@ -1,9 +1,9 @@
-# PostgreSQL local
+# Cogas: PostgreSQL local
 
 1. En pgAdmin, abre Query Tool en `postgres` y ejecuta `00_crear_base.sql` fuera de una transacción.
 2. Actualiza Databases y abre Query Tool en `panaderia_abastecimiento`.
 3. Ejecuta `01_tablas_y_datos.sql`.
-4. Configura `abastecimiento/.env` y ejecuta `scripts/run.ps1`, siguiendo el README principal.
+4. Configura `abastecimiento/.env` y ejecuta `.\scripts\run.ps1 -BaseDatos Local` desde la carpeta `services`, siguiendo el README principal.
 
 Comprobación:
 

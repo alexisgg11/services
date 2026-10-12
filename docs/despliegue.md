@@ -1,4 +1,4 @@
-# Render + Supabase sin perder el entorno local
+# Cogas: Render + Supabase sin perder el entorno local
 
 Render ejecuta el servidor Java y entrega la interfaz. Supabase almacena los datos en PostgreSQL. Se conserva el mismo código, con configuraciones distintas.
 
@@ -6,7 +6,8 @@ Render ejecuta el servidor Java y entrega la interfaz. Supabase almacena los dat
 
 | Entorno | Aplicación | Base de datos | Configuración |
 | --- | --- | --- | --- |
-| Local | `scripts/run.ps1` | PostgreSQL de tu equipo | `abastecimiento/.env` |
+| Local | `.\scripts\run.ps1 -BaseDatos Local` | PostgreSQL de tu equipo | `abastecimiento/.env` |
+| Backend local con Supabase | `.\scripts\run.ps1 -BaseDatos Supabase` | PostgreSQL de Supabase | `abastecimiento/.env.supabase` |
 | Nube | Docker en Render | PostgreSQL de Supabase | Variables privadas en Render |
 
 No cambies el `.env` local para desplegar. Docker excluye los archivos `.env`. Las variables del entorno tienen prioridad sobre el archivo y no se envían al navegador. Los cambios de datos de una base no se replican automáticamente en la otra.

@@ -7,7 +7,7 @@ import java.util.*;
 public record AppConfig(String host, int port, String dbUrl, String dbUser, String dbPassword,
                         int poolSize, int httpThreads, int queryTimeoutSeconds) {
     public static AppConfig cargar() {
-        Path directorio = Files.exists(Path.of(".env")) ? Path.of(".") : Path.of("contactosdb");
+        Path directorio = Files.exists(Path.of(".env")) ? Path.of(".") : Path.of("abastecimiento");
         Map<String, String> variables = new HashMap<>();
         try {
             Dotenv dotenv = Dotenv.configure().directory(directorio.toString()).ignoreIfMissing().load();

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: miga-abastecimiento
+    name: cogas-abastecimiento
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile

@@ -1,4 +1,4 @@
-# Miga · Abastecimiento de panadería
+# Cogas · Abastecimiento de panadería
 
 Java 25, PostgreSQL y una interfaz web para gestionar productos, proveedores, tipos y unidades. Incluye 50 productos de ejemplo y tres servicios de consulta.
 
@@ -40,6 +40,16 @@ Java 25, PostgreSQL y una interfaz web para gestionar productos, proveedores, ti
 5. Abre **http://127.0.0.1:8080**. Detén el servidor con `Ctrl+C`.
 
 El script compila, ejecuta las pruebas y arranca con el JDK de `java`. Si cambias `.env`, reinicia el servidor. Si cambias `PORT`, usa ese puerto en el navegador. La aplicación no crea tablas ni carga datos al arrancar.
+
+## Backend local con Supabase
+
+Conserva `abastecimiento/.env` para PostgreSQL local. Para la base de Supabase, sigue [esta guía](docs/supabase-local.md) y usa un archivo separado:
+
+```powershell
+.\scripts\run.ps1 -BaseDatos Supabase
+```
+
+Para volver a PostgreSQL local, detén el servidor y ejecuta `scripts/run.ps1` sin parámetros. Las bases no se sincronizan automáticamente.
 
 ## Pruebas
 

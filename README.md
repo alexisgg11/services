@@ -9,7 +9,7 @@ Java 25, PostgreSQL y una interfaz web para gestionar productos, proveedores, ti
 1. Clona el repositorio y entra en la carpeta:
 
    ```powershell
-   git clone https://github.com/alexisgg11/movil_saludo.git services
+   git clone https://github.com/alexisgg11/services.git
    cd services
    ```
 

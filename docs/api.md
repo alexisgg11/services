@@ -26,6 +26,6 @@ Todas las rutas están bajo `/api`. Respuestas JSON; POST/PUT reciben `applicati
 
 `total` considera los filtros. Una página mayor que la última se ajusta a la última válida. Un resultado vacío devuelve items vacío, total 0 y página 1 de 1. Tamaños, IDs o páginas inválidos devuelven 400. No hay opción para descargar una lista ilimitada.
 
-POST/PUT requieren `descripcion`, `precio`, `idTipo`, `idProveedor`, `idUnidad`. Precio decimal con hasta dos decimales. IDs positivos. Errores: 400 validación, 404 inexistente, 409 restricción SQL, 413 tamaño, 415 formato, 503 PostgreSQL no disponible.
+POST/PUT requieren `descripcion`, `precio`, `idTipo`, `idProveedor`, `idUnidad`. Descripción de 1 a 150 caracteres, sin caracteres de control. Precio entre 0 y 99999999.99, con punto decimal y hasta dos decimales; se rechazan comas, notación científica, signos y espacios. IDs enteros positivos y referencias existentes. Las mismas restricciones se aplican al registrar y editar, tanto en la interfaz como en el backend. Errores: 400 validación, 404 inexistente, 409 restricción SQL, 413 tamaño, 415 formato, 503 PostgreSQL no disponible.
 
 La API cambió del listado completo a una respuesta paginada; la interfaz y `scripts/test-api.ps1` consumen el contrato actual.

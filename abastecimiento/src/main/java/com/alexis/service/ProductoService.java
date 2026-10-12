@@ -33,8 +33,13 @@ public class ProductoService {
         String descripcion = datos.getOrDefault("descripcion", "").strip();
         if (descripcion.isBlank() || descripcion.length() > 150)
             throw new IllegalArgumentException("La descripción debe tener entre 1 y 150 caracteres.");
+        if (descripcion.chars().anyMatch(Character::isISOControl))
+            throw new IllegalArgumentException("La descripción no admite caracteres de control ni saltos de línea.");
+        String textoPrecio = datos.getOrDefault("precio", "");
+        if (!textoPrecio.matches("[0-9]{1,8}(\\.[0-9]{1,2})?"))
+            throw new IllegalArgumentException("El precio debe estar entre 0 y 99999999.99, con hasta dos decimales y punto decimal.");
         BigDecimal precio;
-        try { precio = new BigDecimal(datos.getOrDefault("precio", "")); }
+        try { precio = new BigDecimal(textoPrecio); }
         catch (NumberFormatException error) { throw new IllegalArgumentException("El precio debe ser decimal."); }
         if (precio.signum() < 0 || precio.compareTo(new BigDecimal("99999999.99")) > 0
                 || precio.stripTrailingZeros().scale() > 2)

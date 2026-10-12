@@ -4,12 +4,23 @@ const state = { products: [], catalogs: null, deleteId: null, pending: false, lo
 const money = value => new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
 const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 async function api(path, options = {}) {
-  const response = await fetch('/api' + path, options);
-  const data = await response.json();
+  let response;
+  try { response = await fetch('/api' + path, options); }
+  catch { throw new Error('No se pudo conectar. Revisa tu conexión e intenta nuevamente.'); }
+  let data;
+  try { data = await response.json(); }
+  catch { throw new Error('No se recibió una respuesta válida. Intenta nuevamente.'); }
   if (!response.ok) throw new Error(response.status >= 500 ? 'El servicio no está disponible. Intenta nuevamente.' : data.error || 'No se pudo completar la solicitud.');
   return data;
 }
-function notice(message) { $('notice').textContent = message; $('notice').hidden = !message; }
+function notice(message, kind = 'error') {
+  $('notice-message').textContent = message;
+  $('notice').hidden = !message;
+  $('notice').dataset.kind = kind;
+  $('notice').setAttribute('role', kind === 'error' ? 'alert' : 'status');
+  $('notice-icon').textContent = { success: '✓', error: '!', info: 'i' }[kind];
+}
+$('dismiss-notice').addEventListener('click', () => notice(''));
 function fillSelect(id, items, key, label, placeholder) {
   $(id).replaceChildren();
   if (placeholder) $(id).add(new Option(placeholder, ''));
@@ -47,9 +58,10 @@ function renderProducts() {
   $('first-page').disabled = $('previous-page').disabled = state.loading || state.page === 1;
   $('next-page').disabled = $('last-page').disabled = state.loading || state.page === pages;
 }
-async function loadProducts() {
+async function loadProducts(announce = true) {
   const version = ++state.loadVersion;
   state.loading = true;
+  if (announce) notice('Consultando productos…', 'info');
   for (const id of ['first-page', 'previous-page', 'next-page', 'last-page']) $(id).disabled = true;
   const query = new URLSearchParams({ buscar: $('search').value, tipo: $('filter-type').value, proveedor: $('filter-supplier').value, pagina: state.page, tamano: state.pageSize });
   try {
@@ -58,6 +70,8 @@ async function loadProducts() {
     state.products = data.items; state.total = data.total; state.page = data.pagina; state.pages = data.paginas;
     state.loading = false;
     renderProducts();
+    if (announce) notice(data.total ? `Consulta completada: ${data.total} ${data.total === 1 ? 'producto encontrado' : 'productos encontrados'}.` : 'Consulta completada. No se encontraron productos.', 'success');
+    return true;
   } catch (error) {
     if (version !== state.loadVersion) return;
     state.products = [];
@@ -66,6 +80,7 @@ async function loadProducts() {
     notice('No se pudo cargar el catálogo. Intenta nuevamente.');
     $('product-rows').innerHTML = '<tr><td colspan="7" class="empty">No se pudo cargar el catálogo. Revisa la conexión e intenta actualizar la página.</td></tr>';
     $('table-summary').textContent = 'Catálogo no disponible';
+    return false;
   }
 }
 async function refreshSummary() {
@@ -87,8 +102,10 @@ for (const button of document.querySelectorAll('[data-page]')) button.addEventLi
   $('new-product').hidden = page !== 'productos';
 });
 function openForm(product) {
+  if (state.pending) return;
   if (!state.catalogs) { notice('El catálogo aún no está disponible. Revisa la conexión.'); return; }
   const form = $('product-form'); form.reset(); $('form-error').hidden = true;
+  for (const field of form.querySelectorAll('[aria-invalid]')) field.removeAttribute('aria-invalid');
   $('product-id').value = product?.idProducto || '';
   $('dialog-title').textContent = product ? 'Editar producto' : 'Nuevo producto';
   if (product) {
@@ -97,8 +114,43 @@ function openForm(product) {
   $('product-dialog').showModal();
 }
 $('new-product').addEventListener('click', () => openForm());
-for (const id of ['close-dialog', 'cancel-dialog']) $(id).addEventListener('click', () => $('product-dialog').close());
+for (const id of ['close-dialog', 'cancel-dialog']) $(id).addEventListener('click', () => { if (!state.pending) $('product-dialog').close(); });
+for (const id of ['product-dialog', 'delete-dialog']) $(id).addEventListener('cancel', event => { if (state.pending) event.preventDefault(); });
+function validateProduct(form) {
+  const errors = [];
+  const check = (name, valid, message) => {
+    const field = form.elements[name];
+    field.setAttribute('aria-invalid', String(!valid));
+    if (!valid) errors.push({ field, message });
+  };
+  const description = form.elements.descripcion.value.trim();
+  const price = form.elements.precio.value;
+  check('descripcion', description.length >= 1 && description.length <= 150 && !/[\u0000-\u001f\u007f]/.test(description), 'Descripción: escribe entre 1 y 150 caracteres, sin saltos de línea.');
+  check('precio', /^\d{1,8}(\.\d{1,2})?$/.test(price) && Number(price) <= 99999999.99, 'Precio: ingresa un valor entre 0 y 99 999 999.99, con hasta dos decimales.');
+  for (const [name, collection, key, message] of [['idTipo', 'tipos', 'idTipo', 'Selecciona un tipo de producto válido.'], ['idProveedor', 'proveedores', 'idProveedor', 'Selecciona un proveedor válido.'], ['idUnidad', 'unidades', 'idUnidad', 'Selecciona una unidad de medida válida.']]) {
+    check(name, state.catalogs[collection].some(item => String(item[key]) === form.elements[name].value), message);
+  }
+  if (errors.length) {
+    $('form-error').textContent = errors.map(error => error.message).join(' ');
+    $('form-error').hidden = false; errors[0].field.focus(); return false;
+  }
+  form.elements.descripcion.value = description;
+  return true;
+}
+function mutationPending(pending, deleting = false) {
+  state.pending = pending;
+  for (const id of ['save-product', 'close-dialog', 'cancel-dialog', 'confirm-delete', 'cancel-delete']) $(id).disabled = pending;
+  $('product-form').setAttribute('aria-busy', String(pending && !deleting));
+  $('save-product').textContent = pending && !deleting ? 'Guardando…' : 'Guardar producto';
+  $('confirm-delete').textContent = pending && deleting ? 'Eliminando…' : 'Eliminar producto';
+}
+async function refreshAfterMutation(message) {
+  let complete = await loadProducts(false);
+  try { await refreshSummary(); } catch { complete = false; }
+  notice(complete ? message : `${message} No se pudo actualizar la vista. Recarga la página.`, complete ? 'success' : 'error');
+}
 $('product-rows').addEventListener('click', event => {
+  if (state.pending) return;
   const button = event.target.closest('[data-action]'); if (!button) return;
   const product = state.products.find(p => p.idProducto === Number(button.dataset.id)); if (!product) return;
   if (button.dataset.action === 'edit') openForm(product);
@@ -110,29 +162,31 @@ $('product-rows').addEventListener('click', event => {
 });
 $('product-form').addEventListener('submit', async event => {
   event.preventDefault(); if (state.pending) return;
-  state.pending = true; $('save-product').disabled = true; $('form-error').hidden = true;
+  $('form-error').hidden = true;
+  if (!validateProduct(event.target)) return;
+  mutationPending(true);
   const id = $('product-id').value;
   try {
     await api('/productos' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: new URLSearchParams(new FormData(event.target)) });
-    $('product-dialog').close(); notice(id ? 'Producto actualizado.' : 'Producto registrado.');
-    await loadProducts(); await refreshSummary();
+    $('product-dialog').close();
+    await refreshAfterMutation(id ? 'Producto actualizado correctamente.' : 'Producto registrado correctamente.');
   } catch (error) {
     if ($('product-dialog').open) { $('form-error').textContent = error.message; $('form-error').hidden = false; }
     else notice(error.message);
-  } finally { state.pending = false; $('save-product').disabled = false; }
+  } finally { mutationPending(false); }
 });
-$('cancel-delete').addEventListener('click', () => $('delete-dialog').close());
+$('cancel-delete').addEventListener('click', () => { if (!state.pending) $('delete-dialog').close(); });
 $('confirm-delete').addEventListener('click', async () => {
   if (state.pending) return;
-  state.pending = true; $('confirm-delete').disabled = true;
+  mutationPending(true, true); $('delete-error').hidden = true;
   try {
     await api('/productos/' + state.deleteId, { method: 'DELETE' });
-    $('delete-dialog').close(); notice('Producto eliminado.');
-    await loadProducts(); await refreshSummary();
+    $('delete-dialog').close();
+    await refreshAfterMutation('Producto eliminado correctamente.');
   } catch (error) {
     if ($('delete-dialog').open) { $('delete-error').textContent = error.message; $('delete-error').hidden = false; }
     else notice(error.message);
-  } finally { state.pending = false; $('confirm-delete').disabled = false; }
+  } finally { mutationPending(false); }
 });
 let debounce;
 function resetQuery() { clearTimeout(debounce); state.page = 1; return loadProducts(); }
@@ -146,6 +200,7 @@ for (const [id, move] of Object.entries({ 'first-page': () => 1, 'previous-page'
 async function runService(path, title, button, page = 1) {
   if (state.servicePending) return;
   state.servicePending = true;
+  notice('Consultando…', 'info');
   for (const id of ['service-max', 'service-by-supplier', 'service-by-type', 'service-previous', 'service-next']) $(id).disabled = true;
   try {
     const [name, query] = path.split('?');
@@ -159,8 +214,13 @@ async function runService(path, title, button, page = 1) {
     $('service-page-label').textContent = paginated ? `Página ${data.pagina} de ${data.paginas}` : '';
     $('result-title').textContent = title; $('result-description').textContent = `${total} ${total === 1 ? 'producto' : 'productos'}`;
     $('result-content').innerHTML = rows.length ? `<table><thead><tr><th>ID</th><th>Producto</th><th>Tipo</th><th>Proveedor</th><th>Unidad</th><th class="number">Precio</th></tr></thead><tbody>${rows.map(p => productRow(p, false)).join('')}</tbody></table>` : 'No hay productos para esta consulta.';
-    notice('');
-  } catch (error) { notice(error.message); }
+    notice(total ? `Consulta completada: ${total} ${total === 1 ? 'producto encontrado' : 'productos encontrados'}.` : 'Consulta completada. No hay productos para esta selección.', 'success');
+  } catch (error) {
+    state.service = null; $('result-footer').hidden = true;
+    $('result-description').textContent = '';
+    $('result-content').textContent = 'No se pudo completar la consulta. Intenta nuevamente.';
+    notice(error.message);
+  }
   finally {
     state.servicePending = false;
     for (const id of ['service-max', 'service-by-supplier', 'service-by-type']) $(id).disabled = false;
@@ -184,7 +244,7 @@ $('service-by-type').addEventListener('click', event => {
 async function start() {
   try {
     state.catalogs = await api('/catalogos'); renderCatalogs();
-    await loadProducts(); await refreshSummary();
+    await loadProducts(false); await refreshSummary();
   } catch (error) {
     notice('No se pudo cargar el catálogo. Intenta nuevamente.'); $('new-product').disabled = true;
     $('product-rows').innerHTML = '<tr><td colspan="7" class="empty">Catálogo no disponible.</td></tr>';

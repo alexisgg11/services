@@ -30,10 +30,29 @@ public class ProductoServiceTest {
         assertEquals(new BigDecimal("4.80"), repo.precio); assertEquals("Harina",repo.descripcion);
     }
     @Test public void rechazaPreciosInvalidosAntesDePersistir() throws Exception {
-        for (String precio : List.of("-1", "1.001", "100000000", "NaN", "", "4,80")) {
+        for (String precio : List.of("-1", "1.001", "1.000", "100000000", "NaN", "", "4,80", "1e2", "+4", " 4.80 ")) {
             var repo = new Repo();
             try { new ProductoService(repo).guardar(null, datos(precio)); fail("Aceptó " + precio); }
             catch (IllegalArgumentException expected) { assertFalse(repo.guardar); }
+        }
+    }
+    @Test public void restriccionesSeAplicanTambienAlEditar() throws Exception {
+        for (String descripcion : List.of(" ", "x".repeat(151), "Harina\nTrigo", "Harina\u0000")) {
+            var data = new HashMap<>(datos("4.80")); data.put("descripcion", descripcion);
+            var repo = new Repo();
+            try { new ProductoService(repo).guardar(1, data); fail("Descripción inválida aceptada al editar"); }
+            catch (IllegalArgumentException expected) { assertFalse(repo.guardar); }
+        }
+        var repo = new Repo();
+        try { new ProductoService(repo).guardar(1, datos("1e2")); fail("Precio inválido aceptado al editar"); }
+        catch (IllegalArgumentException expected) { assertFalse(repo.guardar); }
+    }
+    @Test public void aceptaLimitesDePrecioYDescripcion() throws Exception {
+        for (String precio : List.of("0", "0.00", "99999999.99")) {
+            var data = new HashMap<>(datos(precio)); data.put("descripcion", "x".repeat(150));
+            var repo = new Repo();
+            new ProductoService(repo).guardar(null, data);
+            assertTrue(repo.guardar); assertEquals(new BigDecimal(precio).setScale(2), repo.precio);
         }
     }
     @Test public void rechazaDescripcionVaciaYClavesInvalidas() throws Exception {

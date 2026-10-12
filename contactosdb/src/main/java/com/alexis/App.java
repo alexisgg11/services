@@ -1,50 +1,52 @@
 package com.alexis;
 
-import java.util.List;
-import java.util.Scanner; // Importamos la herramienta para leer texto
+import com.alexis.config.AppConfig;
+import com.alexis.config.ConexionDB;
+import com.alexis.controller.ProductoController;
+import com.alexis.repository.ProductoRepository;
+import com.alexis.service.ProductoService;
+import com.sun.net.httpserver.HttpServer;
+import java.net.InetSocketAddress;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class App {
     public static void main(String[] args) {
-        ContactoService servicio = new ContactoService();
-        // 1. Inicializar el lector de teclado
-        Scanner scanner = new Scanner(System.in);
-        
-        System.out.println("=== REGISTRO DE NUEVO ALUMNO ===");
-        
-        // 2. Pedir los datos uno por uno
-        System.out.print("Ingrese el nombre: ");
-        String nombre = scanner.nextLine();
-        
-        System.out.print("Ingrese los apellidos: ");
-        String apellidos = scanner.nextLine();
-        
-        System.out.print("Ingrese el celular (9 dígitos): ");
-        String celular = scanner.nextLine();
-        
-        System.out.print("Ingrese el distrito: ");
-        String distrito = scanner.nextLine();
-
-        // 3. Crear el objeto Contacto con las variables que el usuario acaba de escribir
-        Contacto nuevoAlumno = new Contacto(0, nombre, apellidos, celular, distrito);
-        
-        // 4. Enviar el objeto al servicio para registrarlo en la BD
-        System.out.println("\nGuardando en la base de datos...");
-        boolean registrado = servicio.registrar(nuevoAlumno);
-        
-        if (registrado) {
-            System.out.println("¡Alumno registrado con éxito!\n");
-        } else {
-            System.out.println("Hubo un problema al registrar.\n");
+        try {
+            iniciar(AppConfig.cargar());
+        } catch (IllegalArgumentException error) {
+            System.err.println(error.getMessage());
+            System.exit(1);
+        } catch (Exception error) {
+            System.err.println("No se pudo iniciar la aplicación. Revisa la configuración, PostgreSQL y el puerto.");
+            System.exit(1);
         }
+    }
 
-        // 5. Mostrar todos los alumnos para confirmar
-        List<Contacto> misAlumnos = servicio.obtenerTodos();
-        System.out.println("=== LISTA DE ALUMNOS ACTUALIZADA ===");
-        for (Contacto alumno : misAlumnos) {
-            System.out.println(alumno.toString());
+    private static void iniciar(AppConfig config) throws Exception {
+        var base = new ConexionDB(config);
+        try {
+            base.verificar();
+            var servidor = HttpServer.create(new InetSocketAddress(config.host(), config.port()), 32);
+            var ejecutor = Executors.newFixedThreadPool(config.httpThreads());
+            servidor.setExecutor(ejecutor);
+            var repository = new ProductoRepository(base.dataSource(), config.queryTimeoutSeconds());
+            servidor.createContext("/", new ProductoController(new ProductoService(repository)));
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                servidor.stop(2);
+                ejecutor.shutdown();
+                try {
+                    if (!ejecutor.awaitTermination(5, TimeUnit.SECONDS)) ejecutor.shutdownNow();
+                } catch (InterruptedException error) {
+                    Thread.currentThread().interrupt();
+                    ejecutor.shutdownNow();
+                } finally { base.close(); }
+            }));
+            servidor.start();
+            System.out.println("Servidor iniciado en " + servidor.getAddress());
+        } catch (Exception error) {
+            base.close();
+            throw error;
         }
-        
-        // 6. Cerrar el lector
-        scanner.close();
     }
 }

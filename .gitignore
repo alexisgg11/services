@@ -1,0 +1,8 @@
+**/.env
+**/.env.*
+!**/.env.example
+**/target/
+**/*.log
+.DS_Store
+.github/modernize/
+contactosdb/.github/modernize/

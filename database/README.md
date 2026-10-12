@@ -1,0 +1,14 @@
+# PostgreSQL local
+
+1. En pgAdmin, abre Query Tool en `postgres` y ejecuta `00_crear_base.sql` fuera de una transacción.
+2. Actualiza Databases y abre Query Tool en `panaderia_abastecimiento`.
+3. Ejecuta `01_tablas_y_datos.sql`.
+4. Configura `contactosdb/.env` y ejecuta `scripts/run.ps1`, siguiendo el README principal.
+
+Comprobación:
+
+```sql
+SELECT count(*) FROM panaderia.producto; -- 50
+```
+
+Estos archivos son la única fuente SQL de instalación. Los datos de muestra y sus RUC son ficticios. El esquema `panaderia` no modifica la tabla anterior de contactos. No vuelvas a ejecutar la carga para arrancar el servidor: puede reponer ejemplos eliminados.

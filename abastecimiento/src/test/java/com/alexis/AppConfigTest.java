@@ -27,13 +27,23 @@ public class AppConfigTest {
         }
     }
     @Test public void rechazaPuertosYLimitesInvalidosSinExponerValores() {
-        for (String clave : List.of("PORT", "DB_POOL_SIZE", "HTTP_THREADS", "DB_QUERY_TIMEOUT_SECONDS")) {
+        for (String clave : List.of("PORT", "DB_POOL_SIZE", "HTTP_THREADS", "DB_QUERY_TIMEOUT_SECONDS", "DB_CONNECTION_TIMEOUT_SECONDS")) {
             for (String valor : List.of("0", "999999", "secreto-prueba")) {
                 var valores = valores(); valores.put(clave, valor);
                 try { AppConfig.desde(valores); fail("Aceptó " + clave); }
                 catch (IllegalArgumentException error) { assertFalse(error.getMessage().contains("secreto-prueba")); }
             }
         }
+    }
+    @Test public void tiempoDeConexionTieneLimitesYValorPorDefecto() {
+        assertEquals(20, AppConfig.desde(valores()).connectionTimeoutSeconds());
+        for (String limite : List.of("3", "60")) {
+            var data = valores(); data.put("DB_CONNECTION_TIMEOUT_SECONDS", limite);
+            assertEquals(Integer.parseInt(limite), AppConfig.desde(data).connectionTimeoutSeconds());
+        }
+        var data = valores(); data.put("DB_CONNECTION_TIMEOUT_SECONDS", "2");
+        try { AppConfig.desde(data); fail("Aceptó un tiempo de conexión demasiado corto"); }
+        catch (IllegalArgumentException expected) {}
     }
     @Test public void rechazaCredencialesEnLaUrl() {
         var valores = valores(); valores.put("DB_URL", "jdbc:postgresql://example.invalid/base?password=secreto-prueba");

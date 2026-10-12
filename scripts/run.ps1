@@ -47,6 +47,6 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Falló la compilación o las pruebas.' }
         $socketDirectory = Join-Path $moduleDirectory 'target'
         & $javaExecutable "-Djdk.net.unixdomain.tmpdir=$socketDirectory" "-Dapp.env.file=$environmentFile" -cp 'target/abastecimiento-1.0-SNAPSHOT.jar;target/dependency/*' com.alexis.App
-        if ($LASTEXITCODE -ne 0) { throw 'La aplicación no pudo arrancar. Revisa .env y PostgreSQL.' }
+        if ($LASTEXITCODE -ne 0) { throw "La aplicacion no pudo arrancar con $environmentFilename. Revisa el diagnostico anterior." }
     } finally { $env:JAVA_HOME = $previousJavaHome }
 } finally { Pop-Location }

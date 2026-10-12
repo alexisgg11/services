@@ -6,7 +6,7 @@
 
 - `App` compone las dependencias y coordina el cierre del servidor y del pool.
 - `config/AppConfig` carga `.env` o variables del entorno y valida host, puerto, URL, usuario, contraseña y límites antes de arrancar. El entorno tiene prioridad. No usa credenciales por defecto ni imprime secretos.
-- `config/ConexionDB` administra un pool HikariCP por proceso: máximo 5 conexiones por defecto, adquisición en 5 segundos, sin conexiones mínimas calientes y cierre explícito. JDBC usa timeout de consulta y bloqueo.
+- `config/ConexionDB` administra un pool HikariCP por proceso: máximo 5 conexiones por defecto, adquisición en 20 segundos configurable, sin conexiones mínimas calientes y cierre explícito. JDBC usa timeout de conexión, consulta y bloqueo.
 - `repository` recibe `DataSource`, usa `PreparedStatement`, devuelve cada conexión al pool con try-with-resources y no consulta el entorno.
 - `service` valida los datos y no depende del servidor HTTP.
 - `controller` convierte solicitudes y respuestas, limita formularios y traduce fallos en códigos HTTP.
@@ -16,7 +16,7 @@
 
 Obligatorias: `APP_HOST`, `PORT`, `DB_URL`, `DB_USER`, `DB_PASSWORD`. URL, usuario y contraseña se configuran separados. Ninguno se envía al navegador. Valores locales solo figuran como ejemplo de instalación.
 
-Opcionales: `DB_POOL_SIZE` (5, rango 1–20), `HTTP_THREADS` (8, rango 1–32), `DB_QUERY_TIMEOUT_SECONDS` (10, rango 1–60).
+Opcionales: `DB_POOL_SIZE` (5, rango 1–20), `HTTP_THREADS` (8, rango 1–32), `DB_QUERY_TIMEOUT_SECONDS` (10, rango 1–60), `DB_CONNECTION_TIMEOUT_SECONDS` (20, rango 3–60).
 
 `App.java` no contiene localhost, puertos ni credenciales. Los nombres de tablas, relaciones y restricciones pertenecen al modelo y son constantes SQL; no son valores de conexión ni se reciben del cliente.
 

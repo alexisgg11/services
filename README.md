@@ -49,6 +49,7 @@ Los comandos siguientes se ejecutan desde **services**, donde están `scripts`, 
    DB_POOL_SIZE=5
    HTTP_THREADS=8
    DB_QUERY_TIMEOUT_SECONDS=10
+   DB_CONNECTION_TIMEOUT_SECONDS=20
    ```
 
 Sustituye usuario y contraseña por los de PostgreSQL local. Conserva la contraseña entre comillas, especialmente si contiene `#`. No vuelvas a cargar los datos iniciales si ya tienes la base preparada.
@@ -77,6 +78,7 @@ El backend y la interfaz siguen ejecutándose en tu equipo; solo PostgreSQL est�
    DB_POOL_SIZE=5
    HTTP_THREADS=8
    DB_QUERY_TIMEOUT_SECONDS=10
+   DB_CONNECTION_TIMEOUT_SECONDS=20
    ```
 
 Usa la contraseña original de la base, entre comillas y sin codificación porcentual: JDBC la recibe por separado. No necesitas claves de la Data API. Los archivos `.env` y `.env.supabase` están excluidos de Git.
@@ -113,7 +115,7 @@ Con el servidor detenido y `JAVA_HOME` apuntando al JDK 25:
 mvn -f abastecimiento/pom.xml clean test
 ```
 
-Actualmente hay **19 pruebas** de configuración, validaciones, servicios y serialización JSON. El resultado esperado es `BUILD SUCCESS`, sin errores ni fallos.
+Actualmente hay **23 pruebas** de configuración, validaciones, servicios y serialización JSON. El resultado esperado es `BUILD SUCCESS`, sin errores ni fallos.
 
 ### Pruebas de API
 
@@ -134,6 +136,15 @@ Comprueba conexión, paginación, búsqueda parametrizada, resumen, tres servici
 5. Elimina el producto de prueba: primero aparece una confirmación y después el aviso de eliminación.
 
 La descripción admite entre 1 y 150 caracteres, sin caracteres de control. El precio admite de 0 a 99 999 999.99, con punto decimal y hasta dos decimales. Tipo, proveedor y unidad deben corresponder a registros existentes. Las restricciones se aplican al registrar y editar, en la interfaz y en el backend.
+
+## Si el servidor no inicia
+
+`BUILD SUCCESS` confirma la compilación; la conexión a la base y el servidor HTTP se comprueban después. Lee el diagnóstico que aparece a continuación:
+
+- **Usuario o contraseña rechazados:** revisa el archivo del modo seleccionado (`.env` o `.env.supabase`).
+- **Tiempo de conexión agotado:** comprueba que PostgreSQL local esté encendido o Supabase esté activo y accesible. La espera es de 20 segundos por defecto; puedes configurar `DB_CONNECTION_TIMEOUT_SECONDS` entre 3 y 60.
+- **Puerto ocupado:** detén el servidor anterior con Ctrl + C o cambia `PORT` en el perfil seleccionado.
+- **Falta el esquema o la tabla:** prepara esa base con `database/01_tablas_y_datos.sql`. No repitas la carga si las tablas y los datos ya existen.
 
 ## Estructura
 

@@ -28,6 +28,7 @@ PORT=8080
 DB_POOL_SIZE=5
 HTTP_THREADS=8
 DB_QUERY_TIMEOUT_SECONDS=10
+DB_CONNECTION_TIMEOUT_SECONDS=20
 ```
 
 Sustituye los marcadores por los valores reales. Para la conexión JDBC no se necesitan claves `anon` ni `service_role`. El pooler de sesión admite IPv4; la conexión directa gratuita usa IPv6. [Documentación oficial](https://supabase.com/docs/guides/database/connecting-to-postgres)

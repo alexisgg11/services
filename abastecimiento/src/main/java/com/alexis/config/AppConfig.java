@@ -5,7 +5,7 @@ import java.nio.file.*;
 import java.util.*;
 
 public record AppConfig(String host, int port, String dbUrl, String dbUser, String dbPassword,
-                        int poolSize, int httpThreads, int queryTimeoutSeconds) {
+                        int poolSize, int httpThreads, int queryTimeoutSeconds, int connectionTimeoutSeconds) {
     public static AppConfig cargar() {
         String seleccionado = System.getProperty("app.env.file");
         if (seleccionado != null) return cargar(Path.of(seleccionado), System.getenv());
@@ -42,7 +42,8 @@ public record AppConfig(String host, int port, String dbUrl, String dbUser, Stri
             requerida(valores, "DB_USER"), requerida(valores, "DB_PASSWORD"),
             entero(valores, "DB_POOL_SIZE", "5", 1, 20),
             entero(valores, "HTTP_THREADS", "8", 1, 32),
-            entero(valores, "DB_QUERY_TIMEOUT_SECONDS", "10", 1, 60));
+            entero(valores, "DB_QUERY_TIMEOUT_SECONDS", "10", 1, 60),
+            entero(valores, "DB_CONNECTION_TIMEOUT_SECONDS", "20", 3, 60));
     }
 
     private static String requerida(Map<String, String> valores, String clave) {

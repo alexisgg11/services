@@ -19,11 +19,11 @@ public final class ConexionDB implements AutoCloseable {
         opciones.setPassword(config.dbPassword());
         opciones.setMaximumPoolSize(config.poolSize());
         opciones.setMinimumIdle(0);
-        opciones.setConnectionTimeout(5000);
+        opciones.setConnectionTimeout(config.connectionTimeoutSeconds() * 1000L);
         opciones.setValidationTimeout(2000);
         opciones.setIdleTimeout(30000);
         opciones.setInitializationFailTimeout(-1);
-        opciones.addDataSourceProperty("connectTimeout", "5");
+        opciones.addDataSourceProperty("connectTimeout", Integer.toString(Math.min(10, config.connectionTimeoutSeconds())));
         opciones.addDataSourceProperty("socketTimeout", "20");
         opciones.addDataSourceProperty("tcpKeepAlive", "true");
         opciones.addDataSourceProperty("options", "-c statement_timeout=" + config.queryTimeoutSeconds() * 1000 + " -c lock_timeout=5000 -c idle_in_transaction_session_timeout=15000");

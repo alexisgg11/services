@@ -1,6 +1,6 @@
-# API
+# API REST de Cogas
 
-Todas las rutas están bajo `/api`. Respuestas JSON; POST/PUT reciben `application/x-www-form-urlencoded`.
+Todas las rutas están bajo `/api`. Respuestas JSON; POST/PUT reciben `application/json`, validado mediante `ProductoRequest` y Jakarta Validation. Las respuestas usan DTO y Jackson.
 
 | Método y ruta | Resultado |
 | --- | --- |
@@ -28,4 +28,16 @@ Todas las rutas están bajo `/api`. Respuestas JSON; POST/PUT reciben `applicati
 
 POST/PUT requieren `descripcion`, `precio`, `idTipo`, `idProveedor`, `idUnidad`. Descripción de 1 a 150 caracteres, sin caracteres de control. Precio entre 0 y 99999999.99, con punto decimal y hasta dos decimales; se rechazan comas, notación científica, signos y espacios. IDs enteros positivos y referencias existentes. Las mismas restricciones se aplican al registrar y editar, tanto en la interfaz como en el backend. Errores: 400 validación, 404 inexistente, 409 restricción SQL, 413 tamaño, 415 formato, 503 PostgreSQL no disponible.
 
-La API cambió del listado completo a una respuesta paginada; la interfaz y `scripts/test-api.ps1` consumen el contrato actual.
+La interfaz y `scripts/test-api.ps1` consumen JSON. Una solicitud inválida devuelve `error` y, cuando corresponde, `campos` con los mensajes de validación del DTO.
+
+## Registro y edición con DTO
+
+Ejemplo de cuerpo JSON para POST `/api/productos` o PUT `/api/productos/{id}`:
+
+```json
+{"descripcion":"Harina de trigo","precio":"4.80","idTipo":"1","idProveedor":"1","idUnidad":"1"}
+```
+
+Los valores de entrada son cadenas para conservar y validar el formato de precio e identificadores. Las respuestas devuelven IDs enteros y precio decimal. Crear responde 201 y encabezado `Location`; editar y eliminar responden 200. Un JSON mal formado, campos repetidos o desconocidos se rechazan con 400; un formato distinto de JSON se rechaza con 415.
+
+`dto` define el contrato de entrada y salida; `model` contiene los objetos que usa el repositorio. El controlador transforma los modelos en DTO de respuesta. No se exponen credenciales ni conexiones de base de datos.

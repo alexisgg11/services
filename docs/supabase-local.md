@@ -1,6 +1,6 @@
 # Cogas: backend local con PostgreSQL en Supabase
 
-El navegador y Java siguen en tu equipo. Solo PostgreSQL está en Supabase. No se necesita Render para esta modalidad.
+La interfaz y el backend Java 25 con Spring Boot siguen en tu equipo. Solo PostgreSQL está en Supabase. No se necesita Render para esta modalidad.
 
 ## 1. Crear la base
 
@@ -14,7 +14,9 @@ El navegador y Java siguen en tu equipo. Solo PostgreSQL está en Supabase. No s
 Desde la raíz del repositorio, copia la plantilla solo si el archivo privado todavía no existe:
 
 ```powershell
-Copy-Item abastecimiento/.env.supabase.example abastecimiento/.env.supabase
+if (-not (Test-Path abastecimiento/.env.supabase)) {
+    Copy-Item abastecimiento/.env.supabase.example abastecimiento/.env.supabase
+}
 ```
 
 En Supabase abre **Connect → Session pooler**. Copia el host y usuario exactos y configura el archivo privado:

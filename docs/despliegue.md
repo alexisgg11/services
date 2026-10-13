@@ -1,6 +1,6 @@
 # Cogas: Render + Supabase sin perder el entorno local
 
-Render ejecuta el servidor Java y entrega la interfaz. Supabase almacena los datos en PostgreSQL. Se conserva el mismo código, con configuraciones distintas.
+Render ejecuta el JAR de Spring Boot con Java 25 y entrega la interfaz. Supabase almacena los datos en PostgreSQL. Se conserva el mismo código, con configuraciones distintas.
 
 ## Local y nube
 

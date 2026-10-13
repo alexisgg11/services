@@ -1,8 +1,16 @@
 param([Parameter(Mandatory=$true)][string]$BaseUrl)
 $ErrorActionPreference = 'Stop'
 function Assert-True($Condition, [string]$Message) { if (-not $Condition) { throw $Message } }
+function Json-Body([string]$Form) {
+    $data = @{}
+    foreach ($part in $Form.Split('&')) {
+        $pair = $part.Split('=',2)
+        if ($pair.Length -eq 2) { $data[$pair[0]] = [Uri]::UnescapeDataString($pair[1].Replace('+',' ')) }
+    }
+    return ConvertTo-Json -InputObject $data -Compress
+}
 function Status([string]$Path, [string]$Method = 'GET', [string]$Body = '') {
-    $response = Invoke-WebRequest -Uri "$BaseUrl/api$Path" -Method $Method -Body $Body -ContentType 'application/x-www-form-urlencoded' -SkipHttpErrorCheck
+    $response = Invoke-WebRequest -Uri "$BaseUrl/api$Path" -Method $Method -Body (Json-Body $Body) -ContentType 'application/json' -SkipHttpErrorCheck
     return [int]$response.StatusCode
 }
 $health = Invoke-RestMethod "$BaseUrl/api/health"
@@ -29,15 +37,23 @@ Assert-True ($summary.productos -eq $before.total) 'Resumen incorrecto.'
 Assert-True ((Status '/servicios/por-tipo?id=0') -eq 400) 'ID inválido aceptado.'
 Assert-True ((Status '/productos/2147483647') -eq 404) 'Producto inexistente aceptado.'
 Assert-True ((Status '/productos?buscar=Harina&buscar=Sal') -eq 400) 'Parámetros duplicados aceptados.'
+$invalidJsonBodies = @(
+    '{"descripcion":"Prueba","descripcion":"Otra","precio":"4.80","idTipo":"1","idProveedor":"1","idUnidad":"1"}',
+    '{"descripcion":"Prueba","precio":"4.80","idTipo":"1","idProveedor":"1","idUnidad":"1","extra":"no"}'
+)
+foreach ($body in $invalidJsonBodies) {
+    $response = Invoke-WebRequest -Uri "$BaseUrl/api/productos/2147483647" -Method PUT -Body $body -ContentType 'application/json' -SkipHttpErrorCheck
+    Assert-True ($response.StatusCode -eq 400) 'JSON con campos repetidos o desconocidos aceptado.'
+}
 Assert-True ((Status '/productos' 'POST' 'descripcion=Prueba&precio=1.001&idTipo=1&idProveedor=1&idUnidad=1') -eq 400) 'Precio con tres decimales aceptado.'
 Assert-True ((Status '/productos' 'POST' 'descripcion=Prueba&precio=1.00&idTipo=999999&idProveedor=1&idUnidad=1') -eq 409) 'Referencia inexistente aceptada.'
 $createdId = $null
 try {
-    $created = Invoke-RestMethod "$BaseUrl/api/productos" -Method POST -ContentType 'application/x-www-form-urlencoded' -Body 'descripcion=Prueba+API+temporal&precio=4.80&idTipo=1&idProveedor=1&idUnidad=1'
+    $created = Invoke-RestMethod "$BaseUrl/api/productos" -Method POST -ContentType 'application/json' -Body (Json-Body 'descripcion=Prueba+API+temporal&precio=4.80&idTipo=1&idProveedor=1&idUnidad=1')
     $createdId = $created.idProducto
     $product = Invoke-RestMethod "$BaseUrl/api/productos/$createdId"
     Assert-True ($product.precio -eq 4.80) 'El decimal perdió precisión.'
-    $null = Invoke-RestMethod "$BaseUrl/api/productos/$createdId" -Method PUT -ContentType 'application/x-www-form-urlencoded' -Body 'descripcion=Prueba+API+actualizada&precio=5.25&idTipo=2&idProveedor=2&idUnidad=1'
+    $null = Invoke-RestMethod "$BaseUrl/api/productos/$createdId" -Method PUT -ContentType 'application/json' -Body (Json-Body 'descripcion=Prueba+API+actualizada&precio=5.25&idTipo=2&idProveedor=2&idUnidad=1')
     $updated = Invoke-RestMethod "$BaseUrl/api/productos/$createdId"
     Assert-True ($updated.precio -eq 5.25 -and $updated.idProveedor -eq 2 -and $updated.idTipo -eq 2) 'Actualización incorrecta.'
     $search = Invoke-RestMethod "$BaseUrl/api/productos?buscar=Prueba%20API%20actualizada"

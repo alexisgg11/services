@@ -43,10 +43,10 @@ try {
     $previousJavaHome = $env:JAVA_HOME
     $env:JAVA_HOME = $runtimeJavaHome
     try {
-        & $mavenExecutable clean package dependency:copy-dependencies '-DincludeScope=runtime'
+        & $mavenExecutable clean package
         if ($LASTEXITCODE -ne 0) { throw 'Falló la compilación o las pruebas.' }
         $socketDirectory = Join-Path $moduleDirectory 'target'
-        & $javaExecutable "-Djdk.net.unixdomain.tmpdir=$socketDirectory" "-Dapp.env.file=$environmentFile" -cp 'target/abastecimiento-1.0-SNAPSHOT.jar;target/dependency/*' com.alexis.App
+        & $javaExecutable "-Djdk.net.unixdomain.tmpdir=$socketDirectory" "-Dapp.env.file=$environmentFile" -jar 'target/abastecimiento-1.0-SNAPSHOT.jar'
         if ($LASTEXITCODE -ne 0) { throw "La aplicacion no pudo arrancar con $environmentFilename. Revisa el diagnostico anterior." }
     } finally { $env:JAVA_HOME = $previousJavaHome }
 } finally { Pop-Location }

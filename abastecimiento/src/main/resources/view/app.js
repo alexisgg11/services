@@ -167,7 +167,7 @@ $('product-form').addEventListener('submit', async event => {
   mutationPending(true);
   const id = $('product-id').value;
   try {
-    await api('/productos' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', body: new URLSearchParams(new FormData(event.target)) });
+    await api('/productos' + (id ? '/' + id : ''), { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(event.target))) });
     $('product-dialog').close();
     await refreshAfterMutation(id ? 'Producto actualizado correctamente.' : 'Producto registrado correctamente.');
   } catch (error) {

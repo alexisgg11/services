@@ -2,15 +2,17 @@
 
 ## Capas
 
-`view → controller → service → repository → PostgreSQL`.
+`view → controller (DTO) → service → repository → PostgreSQL`. La respuesta vuelve como modelo Java, se transforma a DTO y Jackson la serializa a JSON.
 
-- `App` compone las dependencias y coordina el cierre del servidor y del pool.
+- `App` usa `@SpringBootApplication` y `SpringApplication.run` para cargar Spring y arrancar la aplicación. Spring crea los componentes, inyecta sus dependencias por constructor y coordina su cierre.
+- `config/SpringConfig` registra la configuración, el pool y el DataSource; configura el servidor Tomcat embebido y verifica la base al arrancar.
+- `dto` contiene `ProductoRequest`, validado con Jakarta Validation, y respuestas de producto, paginación, resumen, catálogos y errores. Los modelos internos no se devuelven directamente por HTTP.
 - `config/AppConfig` carga `.env` o variables del entorno y valida host, puerto, URL, usuario, contraseña y límites antes de arrancar. El entorno tiene prioridad. No usa credenciales por defecto ni imprime secretos.
 - `config/ConexionDB` administra un pool HikariCP por proceso: máximo 5 conexiones por defecto, adquisición en 20 segundos configurable, sin conexiones mínimas calientes y cierre explícito. JDBC usa timeout de conexión, consulta y bloqueo.
-- `repository` recibe `DataSource`, usa `PreparedStatement`, devuelve cada conexión al pool con try-with-resources y no consulta el entorno.
-- `service` valida los datos y no depende del servidor HTTP.
-- `controller` convierte solicitudes y respuestas, limita formularios y traduce fallos en códigos HTTP.
-- `util/Json` serializa las respuestas; la vista escapa texto antes de insertar HTML.
+- `repository`, registrado con `@Repository`, recibe `DataSource`, usa `PreparedStatement`, devuelve cada conexión al pool con try-with-resources y no consulta el entorno.
+- `service`, registrado con `@Service`, valida los datos y no depende del servidor HTTP.
+- `controller` usa `@RestController`, `@GetMapping`, `@PostMapping`, `@PutMapping` y `@DeleteMapping`. Recibe DTO JSON, llama al servicio y devuelve DTO. `ApiExceptionHandler` centraliza los errores con `@RestControllerAdvice`; `ApiFilter` aplica cabeceras, límites y rechazo de parámetros repetidos.
+- Jackson, integrado por Spring Boot, serializa y deserializa JSON. `util/DiagnosticoArranque` presenta fallos sin imprimir credenciales; la vista escapa texto antes de insertar HTML.
 
 ## Configuración
 
@@ -39,7 +41,7 @@ Todos los valores de búsqueda, filtros, IDs, precio, tamaño y offset se enlaza
 
 La paginación se ejecuta en PostgreSQL con LIMIT/OFFSET parametrizados. Conteo y página usan la misma transacción de lectura con aislamiento repeatable read. El orden por ID es estable. El resumen usa agregados SQL; la vista no descarga todos los productos para calcular indicadores.
 
-Los catálogos están acotados a 100 elementos por clase. Si se supera ese límite, el servicio falla de forma controlada; para ampliar el alcance hay que paginarlos. Los formularios admiten hasta 16 KiB, búsqueda hasta 150 caracteres y páginas de hasta 100 productos.
+Los catálogos están acotados a 100 elementos por clase. Si se supera ese límite, el servicio falla de forma controlada; para ampliar el alcance hay que paginarlos. Las solicitudes JSON admiten hasta 16 KiB, búsqueda hasta 150 caracteres y páginas de hasta 100 productos.
 
 ## Revisión
 
@@ -48,3 +50,5 @@ Se tomaron de `rosan` las prácticas de configuración privada validada, capas s
 El proyecto no implementa autenticación, roles, compras ni movimientos de stock. No se presenta como un CRM completo. Para un uso operativo con datos reales, esas funciones requieren su propio alcance y pruebas.
 
 Referencias: [pgJDBC y parámetros](https://jdbc.postgresql.org/documentation/query/), [HikariCP](https://github.com/brettwooldridge/HikariCP).
+
+Spring Boot 4.1.1 admite Java 25. [Requisitos oficiales](https://docs.spring.io/spring-boot/system-requirements.html). El JAR ejecutable incluye las dependencias y Tomcat; se conserva JDBC con PreparedStatement, sin JPA/Hibernate.

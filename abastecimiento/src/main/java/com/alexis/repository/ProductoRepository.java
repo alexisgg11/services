@@ -7,6 +7,7 @@ import java.util.*;
 import javax.sql.DataSource;
 
 /** SQL fijo; todos los valores externos se enlazan con PreparedStatement. */
+@org.springframework.stereotype.Repository
 public class ProductoRepository {
     private final DataSource dataSource;
     private final int queryTimeout;
@@ -29,6 +30,10 @@ public class ProductoRepository {
     public ProductoRepository(DataSource dataSource, int queryTimeout) {
         this.dataSource = dataSource;
         this.queryTimeout = queryTimeout;
+    }
+    @org.springframework.beans.factory.annotation.Autowired
+    public ProductoRepository(DataSource dataSource, com.alexis.config.AppConfig config) {
+        this(dataSource, config.queryTimeoutSeconds());
     }
 
     private PreparedStatement preparar(Connection cn, String sql) throws SQLException {

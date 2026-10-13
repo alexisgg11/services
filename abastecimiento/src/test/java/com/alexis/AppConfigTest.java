@@ -3,8 +3,8 @@ package com.alexis;
 import com.alexis.config.AppConfig;
 import java.util.*;
 import java.nio.file.*;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class AppConfigTest {
     private Map<String, String> valores() {

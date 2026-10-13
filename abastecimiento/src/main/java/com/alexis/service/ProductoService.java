@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.*;
 
+@org.springframework.stereotype.Service
 public class ProductoService {
     private final ProductoRepository repository;
     public ProductoService(ProductoRepository repository) { this.repository = repository; }

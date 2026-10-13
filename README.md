@@ -1,6 +1,6 @@
 # Cogas · Abastecimiento de panadería
 
-Aplicación web con Java 25 y PostgreSQL. Permite registrar, editar, eliminar y buscar productos, consultar proveedores, tipos y unidades, y ejecutar tres servicios: producto más caro, productos por proveedor y productos por tipo.
+Aplicación web con Java 25, Spring Boot 4.1.1, API REST y PostgreSQL. Permite registrar, editar, eliminar y buscar productos, consultar proveedores, tipos y unidades, y ejecutar tres servicios: producto más caro, productos por proveedor y productos por tipo.
 
 La base inicial contiene cuatro tablas y 50 productos. Los proveedores, tipos y unidades se consultan y seleccionan; no tienen formularios de registro o edición.
 
@@ -99,7 +99,7 @@ Para trasladar una base existente, sigue [la guía de Supabase](docs/supabase-lo
 .\scripts\run.ps1 -BaseDatos Supabase
 ```
 
-El script selecciona el archivo de conexión, compila, ejecuta las pruebas y arranca Java. No inicia PostgreSQL, no crea tablas ni vuelve a insertar los datos.
+El script selecciona el archivo de conexión, compila, ejecuta las pruebas y arranca el JAR de Spring Boot. El JAR incluye las librerías necesarias y Tomcat embebido. No inicia PostgreSQL, no crea tablas ni vuelve a insertar los datos.
 
 Abre [Cogas](http://127.0.0.1:8080/). Deja la terminal abierta mientras utilices el sistema. Si cambias `PORT`, usa ese puerto en el navegador.
 
@@ -115,7 +115,7 @@ Con el servidor detenido y `JAVA_HOME` apuntando al JDK 25:
 mvn -f abastecimiento/pom.xml clean test
 ```
 
-Actualmente hay **23 pruebas** de configuración, validaciones, servicios y serialización JSON. El resultado esperado es `BUILD SUCCESS`, sin errores ni fallos.
+Actualmente hay **29 pruebas** de configuración, validaciones, servicios, DTO y controladores REST con Spring MVC. El resultado esperado es `BUILD SUCCESS`, sin errores ni fallos.
 
 ### Pruebas de API
 
@@ -155,13 +155,14 @@ services/
     .env.supabase.example     Plantilla para Supabase
     pom.xml                   Dependencias y compilación con Java 25
     src/main/java/com/alexis/
-      App.java                Arranque y cierre del servidor
+      App.java                Arranque con SpringApplication y @SpringBootApplication
       config/                 Configuración y pool de conexiones
-      model/                  Entidades y respuestas paginadas
-      controller/             Peticiones y respuestas HTTP
-      service/                Validaciones y reglas de negocio
-      repository/             Consultas SQL parametrizadas
-      util/                   Serialización JSON
+      model/                  Modelos internos del dominio
+      dto/                    Solicitudes y respuestas de la API REST
+      controller/             @RestController y errores centralizados
+      service/                @Service, validaciones y reglas de negocio
+      repository/             @Repository y SQL JDBC parametrizado
+      util/                   Diagnósticos de arranque sin credenciales
     src/main/resources/view/  Interfaz HTML, CSS y JavaScript
     src/test/java/com/alexis/  Pruebas del backend
   database/                   Creación de tablas y datos iniciales
@@ -176,4 +177,4 @@ services/
 - [Backend local con Supabase](docs/supabase-local.md)
 - [Despliegue en Render](docs/despliegue.md)
 
-Cogas es una aplicación por capas que expone una API HTTP. El alcance actual no incluye autenticación, compras ni movimientos de stock; **Admin** es una etiqueta del menú.
+Cogas es un monolito por capas con Spring Boot que expone una API REST. Spring crea e inyecta los componentes; Jackson convierte los DTO a JSON. El alcance actual no incluye autenticación, compras ni movimientos de stock; **Admin** es una etiqueta del menú.

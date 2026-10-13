@@ -1,14 +1,14 @@
 package com.alexis;
 
-import com.alexis.util.Json;
+import tools.jackson.databind.json.JsonMapper;
 import com.alexis.model.PaginaProductos;
 import com.alexis.model.Producto;
 import com.alexis.repository.ProductoRepository;
 import com.alexis.service.ProductoService;
 import java.math.BigDecimal;
 import java.util.*;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ProductoServiceTest {
     private static class Repo extends ProductoRepository {
@@ -68,20 +68,20 @@ public class ProductoServiceTest {
         service.porProveedor(3, 1, 10); assertEquals(Integer.valueOf(3), repo.proveedor); assertNull(repo.tipo);
         service.porTipo(4, 1, 10); assertEquals(Integer.valueOf(4), repo.tipo); assertNull(repo.proveedor);
     }
-    @Test(expected=NoSuchElementException.class) public void catalogoVacioDevuelveNoEncontrado() throws Exception {
-        new ProductoService(new Repo()).masCaro();
+    @Test public void catalogoVacioDevuelveNoEncontrado() throws Exception {
+        assertThrows(NoSuchElementException.class, () -> new ProductoService(new Repo()).masCaro());
     }
-    @Test(expected=NoSuchElementException.class) public void actualizarInexistenteDevuelveNoEncontrado() throws Exception {
-        new ProductoService(new Repo()).guardar(999, datos("4.80"));
+    @Test public void actualizarInexistenteDevuelveNoEncontrado() throws Exception {
+        assertThrows(NoSuchElementException.class, () -> new ProductoService(new Repo()).guardar(999, datos("4.80")));
     }
-    @Test(expected=NoSuchElementException.class) public void eliminarInexistenteDevuelveNoEncontrado() throws Exception {
-        new ProductoService(new Repo()).eliminar(999);
+    @Test public void eliminarInexistenteDevuelveNoEncontrado() throws Exception {
+        assertThrows(NoSuchElementException.class, () -> new ProductoService(new Repo()).eliminar(999));
     }
     @Test public void jsonEscapaCaracteresYConservaDecimal() {
-        assertEquals("\"a\\\"b\\\\c\\n\\u0001\"", Json.escribir("a\"b\\c\n\u0001"));
+        assertEquals("\"a\\\"b\\\\c\\n\\u0001\"", JsonMapper.builder().build().writeValueAsString("a\"b\\c\n\u0001"));
         var producto = new Producto(1,"Harina", new BigDecimal("4.80"),1,"Básicos",1,"Molino",1,"Kilogramo","kg");
-        assertTrue(Json.escribir(producto).contains("\"precio\":4.80"));
-        assertTrue(Json.escribir(producto).contains("\"descripcion\":\"Harina\""));
+        assertTrue(JsonMapper.builder().build().writeValueAsString(producto).contains("\"precio\":4.80"));
+        assertTrue(JsonMapper.builder().build().writeValueAsString(producto).contains("\"descripcion\":\"Harina\""));
     }
     @Test public void rechazaPaginacionFueraDeRango() throws Exception {
         var service = new ProductoService(new Repo());
@@ -90,7 +90,7 @@ public class ProductoServiceTest {
             catch (IllegalArgumentException expected) {}
         }
     }
-    @Test(expected=IllegalArgumentException.class) public void rechazaBusquedasExtensas() throws Exception {
-        new ProductoService(new Repo()).listar("x".repeat(151),null,null,1,10);
+    @Test public void rechazaBusquedasExtensas() throws Exception {
+        assertThrows(IllegalArgumentException.class, () -> new ProductoService(new Repo()).listar("x".repeat(151),null,null,1,10));
     }
 }

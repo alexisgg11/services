@@ -41,3 +41,24 @@ Ejemplo de cuerpo JSON para POST `/api/productos` o PUT `/api/productos/{id}`:
 Los valores de entrada son cadenas para conservar y validar el formato de precio e identificadores. Las respuestas devuelven IDs enteros y precio decimal. Crear responde 201 y encabezado `Location`; editar y eliminar responden 200. Un JSON mal formado, campos repetidos o desconocidos se rechazan con 400; un formato distinto de JSON se rechaza con 415.
 
 `dto` define el contrato de entrada y salida; `model` contiene los objetos que usa el repositorio. El controlador transforma los modelos en DTO de respuesta. No se exponen credenciales ni conexiones de base de datos.
+
+## Probar un POST sin interfaz ni Postman
+
+Con el servidor iniciado, abre otra terminal de PowerShell y ejecuta:
+
+```powershell
+$json = @{
+    descripcion = 'Producto de prueba JSON'
+    precio = '4.80'
+    idTipo = '1'
+    idProveedor = '1'
+    idUnidad = '1'
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri 'http://localhost:8080/api/productos' `
+    -Method POST -ContentType 'application/json' -Body $json
+```
+
+Esto crea un producto real en la base seleccionada. Conserva el `idProducto` devuelto para consultarlo con GET `/api/productos/{id}` y eliminar el registro de prueba con DELETE a la misma ruta.
+
+Escribir una URL en la barra del navegador envía GET. GET `/api/productos?buscar=harina` consulta; no inserta. El registro exige POST y el JSON en el cuerpo. Se conserva la separación entre lectura y escritura de la base inicial del docente. Los repositorios usan JPA/Hibernate; el contrato HTTP continúa siendo el mismo.

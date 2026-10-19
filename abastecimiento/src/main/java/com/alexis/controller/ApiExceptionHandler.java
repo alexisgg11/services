@@ -1,6 +1,8 @@
 package com.alexis.controller;
 
 import com.alexis.dto.ErrorResponse;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -8,7 +10,6 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.*;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import java.sql.SQLException;
 import java.util.*;
 
 @RestControllerAdvice
@@ -25,10 +26,13 @@ public class ApiExceptionHandler {
     public ResponseEntity<ErrorResponse> solicitud(Exception error) { return respuesta(400,"La solicitud debe contener todos los campos requeridos y un JSON válido."); }
     @ExceptionHandler({NoSuchElementException.class, NoResourceFoundException.class})
     public ResponseEntity<ErrorResponse> inexistente(Exception error) { return respuesta(404,"No se encontró el producto o recurso solicitado."); }
-    @ExceptionHandler(SQLException.class)
-    public ResponseEntity<ErrorResponse> sql(SQLException error) {
-        boolean conflicto = error.getSQLState() != null && error.getSQLState().startsWith("23");
-        return respuesta(conflicto ? 409 : 503, conflicto ? "Los datos relacionados no son válidos o incumplen una restricción." : "No se pudo consultar PostgreSQL. Intenta nuevamente.");
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> restriccion(DataIntegrityViolationException error) {
+        return respuesta(409, "Los datos relacionados no son válidos o incumplen una restricción.");
+    }
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<ErrorResponse> baseDatos(DataAccessException error) {
+        return respuesta(503, "No se pudo consultar PostgreSQL. Intenta nuevamente.");
     }
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponse> metodo(Exception error) { return respuesta(405,"Método no permitido."); }

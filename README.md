@@ -1,6 +1,6 @@
 # Cogas · Abastecimiento de panadería
 
-Aplicación web con Java 25, Spring Boot 4.1.1, API REST y PostgreSQL. Permite registrar, editar, eliminar y buscar productos, consultar proveedores, tipos y unidades, y ejecutar tres servicios: producto más caro, productos por proveedor y productos por tipo.
+Aplicación web con Java 25, Spring Boot 4.1.1, Spring Data JPA/Hibernate, API REST y PostgreSQL local o Supabase. Permite registrar, editar, eliminar y buscar productos, consultar proveedores, tipos y unidades, y ejecutar tres servicios: producto más caro, productos por proveedor y productos por tipo.
 
 La base inicial contiene cuatro tablas y 50 productos. Los proveedores, tipos y unidades se consultan y seleccionan; no tienen formularios de registro o edición.
 
@@ -115,7 +115,7 @@ Con el servidor detenido y `JAVA_HOME` apuntando al JDK 25:
 mvn -f abastecimiento/pom.xml clean test
 ```
 
-Actualmente hay **29 pruebas** de configuración, validaciones, servicios, DTO y controladores REST con Spring MVC. El resultado esperado es `BUILD SUCCESS`, sin errores ni fallos.
+Actualmente hay **31 pruebas** de configuración, validaciones, servicios con repositorios JPA, DTO y controladores REST con Spring MVC. El resultado esperado es `BUILD SUCCESS`, sin errores ni fallos.
 
 ### Pruebas de API
 
@@ -157,24 +157,30 @@ services/
     src/main/java/com/alexis/
       App.java                Arranque con SpringApplication y @SpringBootApplication
       config/                 Configuración y pool de conexiones
-      model/                  Modelos internos del dominio
+      model/                  Cuatro entidades JPA y resultados internos de consulta
       dto/                    Solicitudes y respuestas de la API REST
       controller/             @RestController y errores centralizados
-      service/                @Service, validaciones y reglas de negocio
-      repository/             @Repository y SQL JDBC parametrizado
+      service/                @Service, validaciones y transacciones
+      repository/             Interfaces JpaRepository y consultas JPQL parametrizadas
       util/                   Diagnósticos de arranque sin credenciales
-    src/main/resources/view/  Interfaz HTML, CSS y JavaScript
+    src/main/resources/
+      application.properties  Configuración Spring; Hibernate valida las tablas
+      view/                   Interfaz HTML, CSS y JavaScript
     src/test/java/com/alexis/  Pruebas del backend
   database/                   Creación de tablas y datos iniciales
   scripts/                    Arranque y pruebas de API
-  docs/                       Arquitectura, API y despliegue
+  docs/                       Arquitectura, API, comparación con el docente y despliegue
+  services_docente/            Copia exacta del primer commit del docente; solo referencia
   Dockerfile                  Empaquetado para despliegue
   render.yaml                 Configuración de Render
 ```
 
 - [Arquitectura](docs/arquitectura.md)
+- [Comparación con la base del docente](docs/comparacion-docente.md)
 - [API y servicios](docs/api.md)
 - [Backend local con Supabase](docs/supabase-local.md)
 - [Despliegue en Render](docs/despliegue.md)
 
 Cogas es un monolito por capas con Spring Boot que expone una API REST. Spring crea e inyecta los componentes; Jackson convierte los DTO a JSON. El alcance actual no incluye autenticación, compras ni movimientos de stock; **Admin** es una etiqueta del menú.
+
+La copia `services_docente/` conserva sin modificar el primer commit `6b0c54a` del repositorio SOAS-Servicio. No se compila ni se ejecuta con Cogas. Su `pom.xml` original declara Java 17; nuestro proyecto mantiene Java 25. Hibernate usa `ddl-auto=validate`: no modifica las tablas ni carga ejemplos al arrancar.

@@ -2,6 +2,7 @@ package com.alexis;
 
 import com.alexis.config.ApiFilter;
 import com.alexis.controller.*;
+import com.alexis.dto.ProductoRequest;
 import com.alexis.model.*;
 import com.alexis.service.ProductoService;
 import org.junit.jupiter.api.*;
@@ -10,7 +11,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import java.math.BigDecimal;
-import java.sql.SQLException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.util.ReflectionTestUtils;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -25,12 +27,17 @@ class ProductoControllerTest {
         """;
     private static class StubService extends ProductoService {
         boolean saved;
-        StubService() { super(null); }
-        @Override public int guardar(Integer id, Map<String,String> data) throws SQLException {
-            if (data.get("idProveedor").equals("9999")) throw new SQLException("privado", "23503");
+        StubService() { super(null, null, null, null); }
+        @Override public int guardar(Integer id, ProductoRequest data) {
+            if (data.idProveedor().equals("9999")) throw new DataIntegrityViolationException("privado");
             saved=true; return id == null ? 51 : id;
         }
-        @Override public Producto masCaro() { return new Producto(1,"Harina",new BigDecimal("4.80"),1,"Tipo",1,"Proveedor",1,"Kilogramo","kg"); }
+        @Override public Producto masCaro() {
+            var producto = new Producto("Harina", new BigDecimal("4.80"), new TipoProducto(1, "Tipo"),
+                new Proveedor(1, "20000000001", "Proveedor"), new UnidadMedida(1, "Kilogramo", "kg"));
+            ReflectionTestUtils.setField(producto, "idProducto", 1);
+            return producto;
+        }
         @Override public PaginaProductos listar(String b,Integer p,Integer t,int page,int size) { return new PaginaProductos(List.of(masCaro()),1,page,size,1); }
     }
     @BeforeEach void setup() {
@@ -66,11 +73,16 @@ class ProductoControllerTest {
         mvc.perform(post("/api/productos").contentType(MediaType.TEXT_PLAIN).content(VALID))
             .andExpect(status().isUnsupportedMediaType());
         mvc.perform(post("/api/productos").contentType(MediaType.APPLICATION_JSON).content("x".repeat(16385)))
-            .andExpect(status().isPayloadTooLarge());
+            .andExpect(status().is(413));
     }
     @Test void restriccionSqlNoExponeDetallesInternos() throws Exception {
         String result = mvc.perform(post("/api/productos").contentType(MediaType.APPLICATION_JSON).content(VALID.replace("\"idProveedor\":\"1\"","\"idProveedor\":\"9999\"")))
             .andExpect(status().isConflict()).andReturn().getResponse().getContentAsString();
         assertFalse(result.contains("privado"));
+    }
+    @Test void parametrosEnLaUrlNoEjecutanUnaInsercion() throws Exception {
+        mvc.perform(get("/api/productos").param("descripcion", "Prueba GET").param("precio", "4.80"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items").isArray());
+        assertFalse(service.saved);
     }
 }

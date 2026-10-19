@@ -2,14 +2,14 @@
 
 Revisión del 18 de octubre de 2026. Se compara el código, no las afirmaciones del README original cuando difieren de la implementación.
 
-## Copia utilizada
+## Referencia utilizada
 
 - Repositorio: [bmiguelbc16/SOAS-Servicio](https://github.com/bmiguelbc16/SOAS-Servicio).
 - Primer commit y único commit raíz: [`6b0c54a7712fc2efedbf12333b334e0faaf5f1f5`](https://github.com/bmiguelbc16/SOAS-Servicio/tree/6b0c54a7712fc2efedbf12333b334e0faaf5f1f5).
 - Fecha: 14 de octubre de 2026, 22:39, UTC−05:00.
 - Mensaje: «Baseline: versión del ingeniero tal cual se desarrolló en clases (Spring Boot 4.1.1 + PostgreSQL)».
-- Destino: `services_docente/`, dentro de este repositorio. Sus 15 archivos se verificaron contra los hashes de los blobs originales. No se añadió un repositorio Git dentro de esa carpeta ni se modificó el código copiado.
-- Las mejoras posteriores de Maven, selección automática de puertos e inserción GET con JSON en la URL quedan fuera de esta copia.
+- Se revisaron los 15 archivos del commit inicial y se verificaron sus hashes. La copia temporal de referencia se retiró del proyecto por indicación del usuario; el código original sigue disponible en el enlace anterior.
+- Las mejoras posteriores de Maven, selección automática de puertos e inserción GET con JSON en la URL quedan fuera de esta comparación.
 
 ## Base y adaptación de Cogas
 
@@ -44,12 +44,12 @@ Otros detalles que explican diferencias con la referencia:
 
 - El DTO del docente llama `apellido` al campo de entrada, mientras la entidad usa `apellidos`. En una prueba de su POST hay que respetar `apellido` y la ruta exacta con `/` final.
 - La búsqueda de su servicio construye `new ContactosDTO(contacto.getNombre())`; únicamente rellena el nombre, aunque la página espera también apellido, celular y distrito. Cogas devuelve los campos documentados en sus DTO.
-- El README original afirma que no hay inserción y muestra una respuesta de búsqueda más completa que la implementada. Se conserva tal cual para no alterar la primera versión.
-- `.mvn/maven.config` original contiene una ruta absoluta de otro equipo. Se conserva como referencia; Cogas no usa esa configuración ni depende de ella.
+- El README original afirma que no hay inserción y muestra una respuesta de búsqueda más completa que la implementada.
+- `.mvn/maven.config` original contiene una ruta absoluta de otro equipo. Cogas no usa esa configuración ni depende de ella.
 
 ## Orden y alcance
 
-`abastecimiento/` es la única aplicación de Cogas. `services_docente/` es una referencia separada, excluida del contexto Docker. Las pruebas y los comandos de arranque apuntan explícitamente a `abastecimiento/pom.xml`.
+`abastecimiento/` es la única aplicación de Cogas. El código del docente se consulta en GitHub y no forma parte del proyecto. Las pruebas y los comandos de arranque apuntan explícitamente a `abastecimiento/pom.xml`.
 
 El flujo es: HTTP → controlador y DTO de entrada → servicio y transacción → repositorio JPA → PostgreSQL. La respuesta vuelve como entidad o resultado de consulta, se transforma a DTO y Jackson genera JSON. Las relaciones de producto se cargan al consultar; `open-in-view` está desactivado.
 
@@ -61,4 +61,4 @@ La verificación incluye compilación con Java 25, pruebas de configuración, se
 
 Resultados: 31 pruebas de backend aprobadas; API verificada con PostgreSQL local y Supabase, conservando respectivamente 50 y 51 productos. También se comprobó el comando `scripts/run.ps1 -BaseDatos Supabase`, el catálogo en el navegador y la ausencia de errores en su consola.
 
-El código de referencia se conserva para lectura y comparación. No se conecta a las bases de Cogas ni se ejecuta su inicializador de contactos.
+El repositorio de referencia no se conecta a las bases de Cogas ni se ejecuta su inicializador de contactos.

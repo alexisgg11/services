@@ -50,7 +50,7 @@ Se tomaron de `rosan` las prácticas de configuración privada validada, capas s
 
 El proyecto no implementa autenticación, roles, compras ni movimientos de stock. No se presenta como un CRM completo. Para un uso operativo con datos reales, esas funciones requieren su propio alcance y pruebas.
 
-La referencia de clase está en `services_docente/`, separada del módulo ejecutable. El análisis de coincidencias y diferencias está en [comparacion-docente.md](comparacion-docente.md).
+El análisis de coincidencias y diferencias con la referencia de clase, enlazada en GitHub, está en [comparacion-docente.md](comparacion-docente.md).
 
 Referencias: [Spring Data JPA y consultas](https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html), [Spring Boot y persistencia SQL](https://docs.spring.io/spring-boot/reference/data/sql.html), [HikariCP](https://github.com/brettwooldridge/HikariCP).
 

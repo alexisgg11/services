@@ -170,7 +170,6 @@ services/
   database/                   Creación de tablas y datos iniciales
   scripts/                    Arranque y pruebas de API
   docs/                       Arquitectura, API, comparación con el docente y despliegue
-  services_docente/            Copia exacta del primer commit del docente; solo referencia
   Dockerfile                  Empaquetado para despliegue
   render.yaml                 Configuración de Render
 ```
@@ -183,4 +182,4 @@ services/
 
 Cogas es un monolito por capas con Spring Boot que expone una API REST. Spring crea e inyecta los componentes; Jackson convierte los DTO a JSON. El alcance actual no incluye autenticación, compras ni movimientos de stock; **Admin** es una etiqueta del menú.
 
-La copia `services_docente/` conserva sin modificar el primer commit `6b0c54a` del repositorio SOAS-Servicio. No se compila ni se ejecuta con Cogas. Su `pom.xml` original declara Java 17; nuestro proyecto mantiene Java 25. Hibernate usa `ddl-auto=validate`: no modifica las tablas ni carga ejemplos al arrancar.
+La comparación con el docente toma como referencia el primer commit `6b0c54a` de SOAS-Servicio, enlazado en la evaluación. Nuestro proyecto mantiene Java 25. Hibernate usa `ddl-auto=validate`: no modifica las tablas ni carga ejemplos al arrancar.

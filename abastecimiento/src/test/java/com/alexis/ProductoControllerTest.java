@@ -1,6 +1,7 @@
 package com.alexis;
 
 import com.alexis.config.ApiFilter;
+import com.alexis.config.ApiQueryParameterInterceptor;
 import com.alexis.controller.*;
 import com.alexis.dto.ProductoRequest;
 import com.alexis.model.*;
@@ -27,6 +28,8 @@ class ProductoControllerTest {
         """;
     private static class StubService extends ProductoService {
         boolean saved;
+        boolean listed;
+        List<Object> filtros;
         StubService() { super(null, null, null, null); }
         @Override public int guardar(Integer id, ProductoRequest data) {
             if (data.idProveedor().equals("9999")) throw new DataIntegrityViolationException("privado");
@@ -38,12 +41,16 @@ class ProductoControllerTest {
             ReflectionTestUtils.setField(producto, "idProducto", 1);
             return producto;
         }
-        @Override public PaginaProductos listar(String b,Integer p,Integer t,int page,int size) { return new PaginaProductos(List.of(masCaro()),1,page,size,1); }
+        @Override public PaginaProductos listar(String b,Integer p,Integer t,int page,int size) {
+            listed=true; filtros=Arrays.asList(b,p,t,page,size);
+            return new PaginaProductos(List.of(masCaro()),1,page,size,1);
+        }
     }
     @BeforeEach void setup() {
         validator = new LocalValidatorFactoryBean(); validator.afterPropertiesSet();
         mvc = MockMvcBuilders.standaloneSetup(new ProductoController(service)).setControllerAdvice(new ApiExceptionHandler())
-            .setValidator(validator).addFilters(new ApiFilter()).build();
+            .setValidator(validator).addFilters(new ApiFilter())
+            .addMappedInterceptors(new String[]{"/api/**"}, new ApiQueryParameterInterceptor()).build();
     }
     @AfterEach void close() { validator.close(); }
     @Test void registraJsonYDevuelveCreatedConLocation() throws Exception {
@@ -82,7 +89,46 @@ class ProductoControllerTest {
     }
     @Test void parametrosEnLaUrlNoEjecutanUnaInsercion() throws Exception {
         mvc.perform(get("/api/productos").param("descripcion", "Prueba GET").param("precio", "4.80"))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.items").isArray());
+            .andExpect(status().isBadRequest());
+        assertFalse(service.saved);
+        assertFalse(service.listed);
+    }
+    @Test void rechazaParametrosDesconocidosAntesDeConsultar() throws Exception {
+        for (String nombre : List.of("paginas", "página", "tamanoo")) {
+            mvc.perform(get("/api/productos").param(nombre,"6"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Parámetros no permitidos: " + nombre
+                    + ". Permitidos: buscar, pagina, proveedor, tamano, tipo."));
+        }
+        assertFalse(service.listed);
+    }
+    @Test void conservaParametrosValidosYValoresPorDefecto() throws Exception {
+        mvc.perform(get("/api/productos")).andExpect(status().isOk());
+        assertEquals(Arrays.asList("",null,null,1,10),service.filtros);
+        mvc.perform(get("/api/productos").param("buscar","Harina").param("proveedor","2")
+            .param("tipo","3").param("pagina","2").param("tamano","5"))
+            .andExpect(status().isOk());
+        assertEquals(List.of("Harina",2,3,2,5),service.filtros);
+    }
+    @Test void parametrosPermitidosDependenDeCadaEndpoint() throws Exception {
+        mvc.perform(get("/api/servicios/por-tipo").param("id","3").param("pagina","2").param("tamano","5"))
+            .andExpect(status().isOk());
+        assertEquals(Arrays.asList("",null,3,2,5),service.filtros);
+        mvc.perform(get("/api/servicios/por-tipo").param("id","3").param("buscar","Harina"))
+            .andExpect(status().isBadRequest());
+        for (String ruta : List.of("/api/catalogos", "/api/resumen", "/api/productos/1", "/api/servicios/producto-mas-caro")) {
+            mvc.perform(get(ruta).param("pagina","1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Parámetros no permitidos: pagina. Permitidos: ninguno."));
+        }
+    }
+    @Test void escriturasRechazanParametrosEnLaUrlSinGuardar() throws Exception {
+        mvc.perform(post("/api/productos").param("extra","1").contentType(MediaType.APPLICATION_JSON).content(VALID))
+            .andExpect(status().isBadRequest());
+        mvc.perform(put("/api/productos/1").param("precio","5.00").contentType(MediaType.APPLICATION_JSON).content(VALID))
+            .andExpect(status().isBadRequest());
+        mvc.perform(delete("/api/productos/1").param("extra","1"))
+            .andExpect(status().isBadRequest());
         assertFalse(service.saved);
     }
 }

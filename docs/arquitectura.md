@@ -12,7 +12,7 @@
 - `config/ConexionDB` administra un pool HikariCP por proceso: máximo 5 conexiones por defecto, adquisición en 20 segundos configurable, sin conexiones mínimas calientes y cierre explícito. JDBC usa timeout de conexión, consulta y bloqueo.
 - `repository` contiene interfaces `JpaRepository`. Spring Data implementa las operaciones CRUD; `ProductoRepository` declara la búsqueda JPQL parametrizada y el resumen. `@EntityGraph` carga tipo, proveedor y unidad al consultar productos, evitando consultas adicionales al construir los DTO.
 - `service`, registrado con `@Service`, valida los datos y delimita las transacciones con `@Transactional`. Recibe el DTO de registro directamente, sin convertirlo en un mapa de cadenas. No depende del servidor HTTP.
-- `controller` usa `@RestController`, `@GetMapping`, `@PostMapping`, `@PutMapping` y `@DeleteMapping`. Recibe DTO JSON, llama al servicio y devuelve DTO. `ApiExceptionHandler` centraliza los errores con `@RestControllerAdvice`; `ApiFilter` aplica cabeceras, límites y rechazo de parámetros repetidos.
+- `controller` usa `@RestController`, `@GetMapping`, `@PostMapping`, `@PutMapping` y `@DeleteMapping`. Recibe DTO JSON, llama al servicio y devuelve DTO. `ApiExceptionHandler` centraliza los errores con `@RestControllerAdvice`; `ApiFilter` aplica cabeceras, límites y rechazo de parámetros repetidos. `ApiQueryParameterInterceptor`, registrado en `SpringConfig`, lee las anotaciones `@RequestParam` del método seleccionado y rechaza parámetros desconocidos con HTTP 400 antes de ejecutar la operación.
 - Jackson, integrado por Spring Boot, serializa y deserializa JSON. `util/DiagnosticoArranque` presenta fallos sin imprimir credenciales; la vista escapa texto antes de insertar HTML.
 
 ## Configuración

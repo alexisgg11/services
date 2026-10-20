@@ -26,6 +26,9 @@ $byType = Invoke-RestMethod "$BaseUrl/api/servicios/por-tipo?id=5"
 Assert-True (@($byType.items | Where-Object idTipo -ne 5).Count -eq 0) 'El servicio mezcló tipos.'
 Assert-True ((Status '/productos?tamano=101') -eq 400) 'Tamaño excesivo aceptado.'
 Assert-True ((Status '/productos?pagina=0') -eq 400) 'Página inválida aceptada.'
+Assert-True ((Status '/productos?paginas=6') -eq 400) 'Nombre de parámetro incorrecto aceptado.'
+Assert-True ((Status '/catalogos?pagina=1') -eq 400) 'Parámetro no admitido por catálogos aceptado.'
+Assert-True ((Status '/servicios/por-tipo?id=1&buscar=Harina') -eq 400) 'Parámetro de otra operación aceptado.'
 $page = Invoke-RestMethod "$BaseUrl/api/productos?pagina=2&tamano=5"
 Assert-True ($page.items.Count -eq 5 -and $page.pagina -eq 2 -and $page.total -eq $before.total) 'Paginación incorrecta.'
 $noMatch = Invoke-RestMethod "$BaseUrl/api/productos?buscar=%27%20OR%201%3D1%20--"

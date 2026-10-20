@@ -26,6 +26,8 @@ Todas las rutas están bajo `/api`. Respuestas JSON; POST/PUT reciben `applicati
 
 `total` considera los filtros. Una página mayor que la última se ajusta a la última válida. Un resultado vacío devuelve items vacío, total 0 y página 1 de 1. Tamaños, IDs o páginas inválidos devuelven 400. No hay opción para descargar una lista ilimitada.
 
+Solo se admiten los nombres declarados como `@RequestParam` en cada método del controlador. Los parámetros desconocidos y los repetidos devuelven 400. Por ejemplo, `/api/productos?paginas=6` se rechaza: `pagina` es el parámetro de entrada y `paginas` es un campo calculado de la respuesta. Los servicios por proveedor y por tipo aceptan `id`, `pagina` y `tamano`; los demás endpoints no aceptan parámetros de consulta. POST/PUT reciben los datos en el cuerpo JSON.
+
 POST/PUT requieren `descripcion`, `precio`, `idTipo`, `idProveedor`, `idUnidad`. Descripción de 1 a 150 caracteres, sin caracteres de control. Precio entre 0 y 99999999.99, con punto decimal y hasta dos decimales; se rechazan comas, notación científica, signos y espacios. IDs enteros positivos y referencias existentes. Las mismas restricciones se aplican al registrar y editar, tanto en la interfaz como en el backend. Errores: 400 validación, 404 inexistente, 409 restricción SQL, 413 tamaño, 415 formato, 503 PostgreSQL no disponible.
 
 La interfaz y `scripts/test-api.ps1` consumen JSON. Una solicitud inválida devuelve `error` y, cuando corresponde, `campos` con los mensajes de validación del DTO.
@@ -62,3 +64,5 @@ Invoke-RestMethod -Uri 'http://localhost:8080/api/productos' `
 Esto crea un producto real en la base seleccionada. Conserva el `idProducto` devuelto para consultarlo con GET `/api/productos/{id}` y eliminar el registro de prueba con DELETE a la misma ruta.
 
 Escribir una URL en la barra del navegador envía GET. GET `/api/productos?buscar=harina` consulta; no inserta. El registro exige POST y el JSON en el cuerpo. Se conserva la separación entre lectura y escritura de la base inicial del docente. Los repositorios usan JPA/Hibernate; el contrato HTTP continúa siendo el mismo.
+
+Para practicar sin PowerShell ni Postman, consulta la [guía del CRUD desde el navegador](../README.md#probar-el-crud-desde-el-navegador). Incluye consultas desde la barra, selección de IDs de catálogos, registro, edición y eliminación con `fetch` desde la consola, estados HTTP y explicación del controlador.

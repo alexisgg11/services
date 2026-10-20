@@ -6,6 +6,8 @@ La base inicial contiene cuatro tablas y 50 productos. Los proveedores, tipos y 
 
 Las secciones 1 a 5 explican la instalación y las pruebas. La [guía de funcionamiento](#6-cómo-funciona-cogas) explica las capas, las tecnologías y el recorrido completo de una petición y su respuesta.
 
+Para practicar sin la interfaz de Cogas ni Postman, sigue el [CRUD desde el navegador](#probar-el-crud-desde-el-navegador): consultas desde la barra de direcciones y POST, PUT y DELETE desde la consola del navegador.
+
 ## 1. Preparar el equipo
 
 - JDK 25 y Maven 3.9 o posterior. Configura `java` y `mvn` en el PATH y `JAVA_HOME` con la carpeta del JDK 25.
@@ -117,7 +119,7 @@ Con el servidor detenido y `JAVA_HOME` apuntando al JDK 25:
 mvn -f abastecimiento/pom.xml clean test
 ```
 
-Actualmente hay **31 pruebas** de configuración, validaciones, servicios con repositorios JPA, DTO y controladores REST con Spring MVC. El resultado esperado es `BUILD SUCCESS`, sin errores ni fallos.
+Las pruebas cubren configuración, validaciones, servicios con repositorios JPA, DTO y controladores REST con Spring MVC, incluido el rechazo de parámetros desconocidos. El resultado esperado es `BUILD SUCCESS`, sin errores ni fallos.
 
 ### Pruebas de API
 
@@ -436,7 +438,184 @@ Las validaciones se complementan: el DTO verifica campos y formatos, el servicio
 
 `spring.jpa.hibernate.ddl-auto=validate` comprueba la compatibilidad de las entidades con las tablas existentes. No crea ni actualiza automáticamente el esquema. Los scripts de `database/` preparan la base durante la instalación.
 
-### Probar todo el CRUD sin interfaz ni Postman
+### Probar el CRUD desde el navegador
+
+Conservamos la interfaz de Cogas. La API también funciona sin utilizar sus pantallas ni su archivo `view/app.js`: cualquier cliente HTTP puede consumirla. En esta práctica usaremos la barra de direcciones para GET y la consola del propio navegador para POST, PUT y DELETE. No se necesita PowerShell ni Postman para enviar estas peticiones; el servidor sí debe estar iniciado según la sección 4.
+
+#### Ubicar las operaciones en el código
+
+Abre [ProductoController.java](abastecimiento/src/main/java/com/alexis/controller/ProductoController.java). La anotación de la clase establece el prefijo común:
+
+```java
+@RequestMapping(value="/api", produces=MediaType.APPLICATION_JSON_VALUE)
+```
+
+Después identifica la anotación de cada método:
+
+| Operación | Método Java | Anotación y ruta | Cómo probarla en esta guía |
+| --- | --- | --- | --- |
+| Listar o buscar | `listar` | `@GetMapping("/productos")` | Barra de direcciones |
+| Consultar uno | `obtener` | `@GetMapping("/productos/{id}")` | Barra de direcciones |
+| Consultar tipos, proveedores y unidades | `catalogos` | `@GetMapping("/catalogos")` | Barra de direcciones |
+| Registrar | `registrar` | `@PostMapping` sobre `/productos` | Consola: `fetch` con POST y cuerpo JSON |
+| Editar | `editar` | `@PutMapping` sobre `/productos/{id}` | Consola: `fetch` con PUT y cuerpo JSON |
+| Eliminar | `eliminar` | `@DeleteMapping("/productos/{id}")` | Consola: `fetch` con DELETE |
+
+La dirección se construye como `http://localhost:8080` + `/api` + la ruta de la anotación. El nombre Java `listar` no se añade a la URL. Un endpoint queda identificado por el **método HTTP y la ruta**: GET y POST pueden compartir `/api/productos` y ejecutar operaciones distintas.
+
+El cliente elige el método que envía. En nuestra interfaz lo hace `view/app.js`; el controlador no convierte GET en POST. Si el cliente envía un método que la ruta no admite, se responde 405. Por ejemplo, PUT `/api/productos` sin identificador no es una operación admitida.
+
+#### 1. Listar, buscar y comprender los parámetros
+
+Abre [http://localhost:8080/api/productos](http://localhost:8080/api/productos). Obtendrás JSON, sin la pantalla del catálogo de Cogas.
+
+El método `listar` declara los parámetros mediante `@RequestParam`:
+
+| Parámetro | Configuración | Si lo omites |
+| --- | --- | --- |
+| `buscar` | `defaultValue=""` | Sin filtro por descripción |
+| `proveedor` | `required=false` | Sin filtro por proveedor |
+| `tipo` | `required=false` | Sin filtro por tipo |
+| `pagina` | `defaultValue="1"` | Primera página |
+| `tamano` | `defaultValue="10"` | Hasta 10 productos por página |
+
+`required=false` significa opcional: no debes escribir `proveedor=false`, sino el ID del proveedor cuando quieras filtrar. Puedes omitir los parámetros que no utilices. Los nombres van sin tildes y distinguen mayúsculas de minúsculas.
+
+`?` inicia los parámetros, `=` asigna un valor y `&` separa parámetros. El orden no importa. Ejemplos para escribir en la barra:
+
+```text
+http://localhost:8080/api/productos
+http://localhost:8080/api/productos?pagina=2
+http://localhost:8080/api/productos?buscar=harina
+http://localhost:8080/api/productos?buscar=harina&proveedor=1&pagina=1&tamano=5
+```
+
+Los IDs de los ejemplos deben existir en tu base. Para textos con espacios o caracteres especiales, utiliza codificación de URL; por ejemplo, `buscar=harina%20de%20trigo`.
+
+La respuesta paginada se interpreta así:
+
+| Campo | Significado |
+| --- | --- |
+| `items` | Productos de esta página |
+| `total` | Cantidad de productos que coinciden con los filtros |
+| `pagina` | Página actual |
+| `tamano` | Máximo de productos por página |
+| `paginas` | Total de páginas calculado por el backend; no es un parámetro de entrada |
+
+Por ejemplo, si hay 52 productos y el tamaño es 10, habrá 6 páginas: las cinco primeras con 10 productos y la última con 2. El total real depende de los registros de tu base. Una página que supera la última disponible se ajusta a la última válida.
+
+**Los nombres de parámetros incorrectos se rechazan con HTTP 400.** Por ejemplo, `/api/productos?paginas=6` no vuelve silenciosamente a la primera página. Devuelve:
+
+```json
+{
+  "error": "Parámetros no permitidos: paginas. Permitidos: buscar, pagina, proveedor, tamano, tipo.",
+  "campos": {}
+}
+```
+
+`ApiQueryParameterInterceptor`, registrado en `SpringConfig`, obtiene los nombres permitidos de las anotaciones `@RequestParam` del método que Spring seleccionó. Rechaza los desconocidos antes de ejecutar el controlador y el servicio. `ApiFilter` sigue rechazando parámetros repetidos; el servicio mantiene los límites de valores: página entre 1 y 1 000 000, tamaño entre 1 y 100 e IDs positivos.
+
+Cada endpoint acepta solo sus propios parámetros: `/api/servicios/por-tipo` y `/api/servicios/por-proveedor` admiten `id`, `pagina` y `tamano`. Catálogos, resumen, consulta por ID, producto más caro y operaciones de escritura no admiten parámetros de consulta. En POST/PUT, los datos van en el cuerpo JSON.
+
+#### 2. Consultar los catálogos antes de insertar
+
+Abre [http://localhost:8080/api/catalogos](http://localhost:8080/api/catalogos). Una misma respuesta contiene:
+
+- `tipos`: `idTipo` y `descripcion`.
+- `proveedores`: `idProveedor`, `ruc` y `nombre`.
+- `unidades`: `idUnidad`, `descripcion` y `simbolo`.
+
+Selecciona referencias existentes para preparar el producto. No hay rutas separadas `/api/proveedores`, `/api/tipos` o `/api/unidades` en esta versión.
+
+#### 3. Preparar la consola del navegador
+
+Mantén abierta la dirección **http://localhost:8080/api/catalogos**, pulsa **F12 → Console** y ejecuta los bloques siguientes en orden. No cambies de página ni recargues durante la práctica, porque perderías las variables. Si configuraste otro puerto, usa ese puerto desde el comienzo.
+
+La barra de direcciones envía GET al navegar. **Escribir JSON o la palabra POST en una URL no envía POST.** `fetch` permite seleccionar el método HTTP; el JSON de registro se envía en el cuerpo, no en la barra. Un GET de inserción podría programarse, pero no forma parte de nuestra API: GET consulta y POST registra.
+
+Define esta función para mostrar el estado HTTP y el JSON. También detecta errores: `fetch` no falla automáticamente por una respuesta 400 o 404.
+
+```javascript
+async function solicitarCogas(ruta, opciones = {}) {
+  const respuesta = await fetch('/api' + ruta, opciones);
+  const datos = await respuesta.json();
+  console.log('HTTP:', respuesta.status, 'Respuesta:', datos);
+  if (!respuesta.ok) throw new Error(datos.error || 'La operación falló.');
+  return datos;
+}
+
+var catalogosPrueba = await solicitarCogas('/catalogos');
+console.table(catalogosPrueba.tipos);
+console.table(catalogosPrueba.proveedores);
+console.table(catalogosPrueba.unidades);
+```
+
+#### 4. Insertar con POST y consultar lo creado
+
+**Este bloque crea un producto real en la base seleccionada. Ejecútalo una sola vez** y conserva el identificador devuelto. Usamos el primer registro existente de cada catálogo; puedes elegir otros IDs consultados en el paso anterior. Los tres catálogos deben contener registros.
+
+```javascript
+var datosPrueba = {
+  descripcion: 'Producto temporal del navegador',
+  precio: '4.80',
+  idTipo: String(catalogosPrueba.tipos[0].idTipo),
+  idProveedor: String(catalogosPrueba.proveedores[0].idProveedor),
+  idUnidad: String(catalogosPrueba.unidades[0].idUnidad)
+};
+
+var creadoPrueba = await solicitarCogas('/productos', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(datosPrueba)
+});
+var idPrueba = creadoPrueba.idProducto;
+await solicitarCogas('/productos/' + idPrueba);
+```
+
+POST responde **201** con `idProducto` y `mensaje`; también incluye el encabezado `Location`. El GET posterior responde **200** con los datos guardados. Para consultar directamente desde la barra, abre `http://localhost:8080/api/productos/ID_RECIBIDO`, sustituyendo el marcador por el número real. Hazlo en otra pestaña si quieres conservar las variables de la consola original.
+
+#### 5. Editar con PUT
+
+En la misma consola, utiliza el identificador del producto de prueba. PUT requiere todos los campos del DTO, no solo el precio modificado:
+
+```javascript
+datosPrueba = {
+  ...datosPrueba,
+  descripcion: 'Producto temporal editado desde navegador',
+  precio: '5.25'
+};
+await solicitarCogas('/productos/' + idPrueba, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(datosPrueba)
+});
+await solicitarCogas('/productos/' + idPrueba);
+```
+
+La actualización responde **200**. El GET permite verificar la nueva descripción y el precio. Las validaciones son las mismas que al registrar: campos requeridos, precio con punto y hasta dos decimales, descripción válida y referencias existentes.
+
+#### 6. Eliminar con DELETE
+
+Elimina únicamente el producto temporal creado en esta práctica:
+
+```javascript
+await solicitarCogas('/productos/' + idPrueba, { method: 'DELETE' });
+```
+
+Responde **200** con el mensaje de eliminación. Si después consultas el mismo ID, recibirás **404**, porque ya no existe. Al usar `solicitarCogas`, ese 404 se muestra y también genera un error en la consola; es lo esperado para esa comprobación.
+
+#### Qué observar y cómo explicarlo
+
+En **F12 → Network**, selecciona la petición. **Headers → Request Method** muestra GET, POST, PUT o DELETE; **Payload** muestra el cuerpo JSON de POST/PUT; **Response** muestra el JSON devuelto y **Status Code** el resultado HTTP. No necesitas abrir las pantallas de Cogas para comprobar su backend.
+
+- **¿Dónde se configura lo que envía el cliente?** En `fetch`, mediante `method`; si se omite, usa GET. En la interfaz de Cogas lo hace `view/app.js`.
+- **¿Qué hace el controlador?** Acepta la combinación de método y ruta declarada, recibe parámetros o DTO y llama al servicio. No cambia GET a POST.
+- **¿Qué es el cuerpo JSON?** Texto que el cliente prepara con `JSON.stringify`. Jackson lo interpreta como `ProductoRequest`; el servicio aplica reglas y usa los repositorios JPA.
+- **¿Cómo vuelve la respuesta?** PostgreSQL devuelve resultados; Hibernate los mapea a entidades; el servicio devuelve el resultado; el controlador prepara el DTO y Spring MVC utiliza Jackson para enviarlo como JSON.
+- **¿Qué hace `await respuesta.json()`?** Lee e interpreta el cuerpo de esa respuesta HTTP. No realiza otra consulta a la base.
+- **¿Por qué GET y POST usan la misma URL de productos?** Porque el endpoint incluye el método HTTP, no solo la dirección. Uno consulta; el otro registra.
+
+### Alternativa: probar el CRUD desde PowerShell
 
 Inicia Cogas con el modo deseado según la sección 4. En otra terminal de PowerShell ejecuta el siguiente bloque. **Crea un producto temporal real, lo consulta, lo edita y lo elimina al terminar.** Si ya se recibió el identificador, el bloque `finally` intenta eliminarlo aunque falle un paso posterior.
 
@@ -477,7 +656,7 @@ finally {
 }
 ```
 
-La URL indica el destino. El método HTTP indica la operación y el cuerpo contiene el JSON. **Escribir una URL en la barra del navegador envía GET**; para insertar debes enviar POST, como hace el comando anterior. GET no inserta productos aunque se añadan campos de registro a los parámetros de la URL.
+La URL indica el destino. El método HTTP indica la operación y el cuerpo contiene el JSON. **Escribir una URL en la barra del navegador envía GET**; para insertar debes enviar POST. Añadir campos de registro como parámetros a un GET no inserta productos: se rechazan como parámetros desconocidos con HTTP 400.
 
 ### Respuestas de error
 

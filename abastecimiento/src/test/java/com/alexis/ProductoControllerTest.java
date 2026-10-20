@@ -97,8 +97,7 @@ class ProductoControllerTest {
         for (String nombre : List.of("paginas", "página", "tamanoo")) {
             mvc.perform(get("/api/productos").param(nombre,"6"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Parámetros no permitidos: " + nombre
-                    + ". Permitidos: buscar, pagina, proveedor, tamano, tipo."));
+                .andExpect(jsonPath("$.error").value("Solicitud inválida."));
         }
         assertFalse(service.listed);
     }
@@ -119,7 +118,7 @@ class ProductoControllerTest {
         for (String ruta : List.of("/api/catalogos", "/api/resumen", "/api/productos/1", "/api/servicios/producto-mas-caro")) {
             mvc.perform(get(ruta).param("pagina","1"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Parámetros no permitidos: pagina. Permitidos: ninguno."));
+                .andExpect(jsonPath("$.error").value("Solicitud inválida."));
         }
     }
     @Test void escriturasRechazanParametrosEnLaUrlSinGuardar() throws Exception {

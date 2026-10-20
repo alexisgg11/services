@@ -508,12 +508,12 @@ Por ejemplo, si hay 52 productos y el tamaño es 10, habrá 6 páginas: las cinc
 
 ```json
 {
-  "error": "Parámetros no permitidos: paginas. Permitidos: buscar, pagina, proveedor, tamano, tipo.",
+  "error": "Solicitud inválida.",
   "campos": {}
 }
 ```
 
-`ApiQueryParameterInterceptor`, registrado en `SpringConfig`, obtiene los nombres permitidos de las anotaciones `@RequestParam` del método que Spring seleccionó. Rechaza los desconocidos antes de ejecutar el controlador y el servicio. `ApiFilter` sigue rechazando parámetros repetidos; el servicio mantiene los límites de valores: página entre 1 y 1 000 000, tamaño entre 1 y 100 e IDs positivos.
+`ApiQueryParameterInterceptor`, registrado en `SpringConfig`, obtiene los nombres permitidos de las anotaciones `@RequestParam` del método que Spring seleccionó. Rechaza los desconocidos antes de ejecutar el controlador y el servicio; la respuesta muestra un mensaje breve, sin enumerar parámetros. `ApiFilter` sigue rechazando parámetros repetidos; el servicio mantiene los límites de valores: página entre 1 y 1 000 000, tamaño entre 1 y 100 e IDs positivos.
 
 Cada endpoint acepta solo sus propios parámetros: `/api/servicios/por-tipo` y `/api/servicios/por-proveedor` admiten `id`, `pagina` y `tamano`. Catálogos, resumen, consulta por ID, producto más caro y operaciones de escritura no admiten parámetros de consulta. En POST/PUT, los datos van en el cuerpo JSON.
 

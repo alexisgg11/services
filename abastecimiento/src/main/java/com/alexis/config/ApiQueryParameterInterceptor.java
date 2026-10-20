@@ -23,8 +23,7 @@ public class ApiQueryParameterInterceptor implements HandlerInterceptor {
         var desconocidos = new TreeSet<>(request.getParameterMap().keySet());
         desconocidos.removeAll(permitidos);
         if (!desconocidos.isEmpty()) {
-            throw new IllegalArgumentException("Parámetros no permitidos: " + String.join(", ", desconocidos)
-                + ". Permitidos: " + (permitidos.isEmpty() ? "ninguno" : String.join(", ", permitidos)) + ".");
+            throw new IllegalArgumentException("Solicitud inválida.");
         }
         return true;
     }

@@ -156,6 +156,7 @@ La descripción admite entre 1 y 150 caracteres, sin caracteres de control. El p
 - **Usuario o contraseña rechazados:** revisa el archivo del modo seleccionado (`.env` o `.env.supabase`).
 - **Tiempo de conexión agotado:** comprueba que PostgreSQL local esté encendido o Supabase esté activo y accesible. La espera es de 20 segundos por defecto; puedes configurar `DB_CONNECTION_TIMEOUT_SECONDS` entre 3 y 60.
 - **Puerto ocupado:** detén el servidor anterior con Ctrl + C o cambia `PORT` en el perfil seleccionado.
+- **Archivo de Cogas en uso / Maven no puede eliminar el JAR:** todavía hay un servidor usando ese archivo. Detén ese servidor con Ctrl + C en su terminal y vuelve a ejecutar `run.ps1`. El script comprueba el bloqueo antes de recompilar; cambiar el puerto no libera el JAR.
 - **Falta el esquema o la tabla:** prepara esa base con `database/01_tablas_y_datos.sql`. No repitas la carga si las tablas y los datos ya existen.
 
 ## Estructura

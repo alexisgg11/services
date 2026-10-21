@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet('Local', 'Supabase')]
     [string]$BaseDatos = 'Local'
 )
@@ -9,6 +9,15 @@ $environmentFilename = if ($BaseDatos -eq 'Supabase') { '.env.supabase' } else {
 $environmentFile = Join-Path $moduleDirectory $environmentFilename
 if (-not (Test-Path -LiteralPath $environmentFile -PathType Leaf)) {
     throw "Crea abastecimiento/$environmentFilename con la configuración de la base seleccionada."
+}
+$applicationJar = Join-Path $moduleDirectory 'target/abastecimiento-1.0-SNAPSHOT.jar'
+if (Test-Path -LiteralPath $applicationJar -PathType Leaf) {
+    try {
+        $jarCheck = [IO.File]::Open($applicationJar, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::None)
+        $jarCheck.Dispose()
+    } catch [IO.IOException] {
+        throw 'El archivo de Cogas está en uso. Detén el servidor anterior con Ctrl+C en su terminal antes de volver a iniciar.'
+    }
 }
 Push-Location -LiteralPath $moduleDirectory
 try {
@@ -44,7 +53,7 @@ try {
     $env:JAVA_HOME = $runtimeJavaHome
     try {
         & $mavenExecutable clean package
-        if ($LASTEXITCODE -ne 0) { throw 'Falló la compilación o las pruebas.' }
+        if ($LASTEXITCODE -ne 0) { throw 'Falló la compilación o las pruebas. Revisa el primer mensaje [ERROR] de Maven que aparece arriba.' }
         $socketDirectory = Join-Path $moduleDirectory 'target'
         & $javaExecutable "-Djdk.net.unixdomain.tmpdir=$socketDirectory" "-Dapp.env.file=$environmentFile" -jar 'target/abastecimiento-1.0-SNAPSHOT.jar'
         if ($LASTEXITCODE -ne 0) { throw "La aplicacion no pudo arrancar con $environmentFilename. Revisa el diagnostico anterior." }

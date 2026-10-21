@@ -42,6 +42,14 @@ Ejemplo de cuerpo JSON para POST `/api/productos` o PUT `/api/productos/{id}`:
 
 Los valores de entrada son cadenas para conservar y validar el formato de precio e identificadores. Las respuestas devuelven IDs enteros y precio decimal. Crear responde 201 y encabezado `Location`; editar y eliminar responden 200. Un JSON mal formado, campos repetidos o desconocidos se rechazan con 400; un formato distinto de JSON se rechaza con 415.
 
+## Eliminación lógica
+
+La columna `panaderia.producto.estado` es BOOLEAN NOT NULL, con valor inicial `true`. POST crea productos activos; el cliente no envía `estado` en POST/PUT. Las respuestas de producto incluyen el campo `estado`.
+
+DELETE `/api/productos/{id}` conserva la fila y cambia `estado` a `false` mediante JPA, sin ejecutar un DELETE SQL. GET por ID, PUT y DELETE sobre un producto inactivo responden 404. Listado y su conteo, búsquedas, filtros, resumen y producto más caro consideran únicamente activos. No hay endpoint de restauración ni de borrado físico.
+
+Para bases existentes, aplica `database/02_eliminacion_logica.sql` antes de iniciar esta versión. Las instalaciones nuevas ya incluyen la columna en `01_tablas_y_datos.sql`. Las pruebas CRUD conservan el total de activos y dejan su producto temporal como fila inactiva.
+
 `dto` define el contrato de entrada y salida; `model` contiene los objetos que usa el repositorio. El controlador transforma los modelos en DTO de respuesta. No se exponen credenciales ni conexiones de base de datos.
 
 ## Probar un POST sin interfaz ni Postman

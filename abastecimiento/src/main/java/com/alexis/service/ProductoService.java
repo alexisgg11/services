@@ -45,11 +45,11 @@ public class ProductoService {
     }
 
     public Producto obtener(int id) {
-        return productos.findById(id).orElseThrow(() -> new NoSuchElementException("Producto no encontrado."));
+        return productos.findByIdProductoAndEstadoTrue(id).orElseThrow(() -> new NoSuchElementException("Producto no encontrado."));
     }
 
     public Producto masCaro() {
-        return productos.findFirstByOrderByPrecioDescIdProductoAsc()
+        return productos.findFirstByEstadoTrueOrderByPrecioDescIdProductoAsc()
             .orElseThrow(() -> new NoSuchElementException("No hay productos registrados."));
     }
 
@@ -62,7 +62,7 @@ public class ProductoService {
         Map<Integer, Long> porProveedor = new LinkedHashMap<>();
         cantidades.forEach(fila -> porProveedor.put(fila.getIdProveedor(), fila.getCantidad()));
         long total = porProveedor.values().stream().mapToLong(Long::longValue).sum();
-        return new Resumen(total, productos.findFirstByOrderByPrecioDescIdProductoAsc().orElse(null), porProveedor);
+        return new Resumen(total, productos.findFirstByEstadoTrueOrderByPrecioDescIdProductoAsc().orElse(null), porProveedor);
     }
 
     public CatalogosResponse catalogos() {
@@ -105,8 +105,9 @@ public class ProductoService {
 
     @Transactional
     public void eliminar(int id) {
-        productos.delete(obtener(id));
-        productos.flush();
+        Producto producto = obtener(id);
+        producto.desactivar();
+        productos.saveAndFlush(producto);
     }
 
     public static int idPositivo(String valor) {

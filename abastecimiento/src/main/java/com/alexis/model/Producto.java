@@ -17,6 +17,9 @@ public class Producto {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal precio;
 
+    @Column(nullable = false)
+    private boolean estado = true;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_tipo", nullable = false)
     private TipoProducto tipo;
@@ -44,6 +47,8 @@ public class Producto {
     }
 
     public Integer getIdProducto() { return idProducto; }
+    public boolean isEstado() { return estado; }
+    public void desactivar() { estado = false; }
     public String getDescripcion() { return descripcion; }
     public BigDecimal getPrecio() { return precio; }
     public TipoProducto getTipo() { return tipo; }

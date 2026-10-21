@@ -4,6 +4,8 @@ Aplicación web con Java 25, Spring Boot 4.1.1, Spring Data JPA/Hibernate, API R
 
 La base inicial contiene cuatro tablas y 50 productos. Los proveedores, tipos y unidades se consultan y seleccionan; no tienen formularios de registro o edición.
 
+La eliminación de productos es **lógica**: DELETE cambia `estado` de `true` (activo) a `false` (inactivo), conservando la fila y su identificador. Las consultas y los servicios muestran únicamente productos activos.
+
 Las secciones 1 a 5 explican la instalación y las pruebas. La [guía de funcionamiento](#6-cómo-funciona-cogas) explica las capas, las tecnologías y el recorrido completo de una petición y su respuesta.
 
 Para practicar sin la interfaz de Cogas ni Postman, sigue el [CRUD desde el navegador](#probar-el-crud-desde-el-navegador): consultas desde la barra de direcciones y POST, PUT y DELETE desde la consola del navegador.
@@ -89,6 +91,12 @@ Usa la contraseña original de la base, entre comillas y sin codificación porce
 
 Para trasladar una base existente, sigue [la guía de Supabase](docs/supabase-local.md). Las bases local y Supabase no se sincronizan automáticamente. Las variables del sistema tienen prioridad sobre los archivos de configuración.
 
+### Actualizar una base existente: eliminación lógica
+
+Antes de iniciar esta versión sobre una base creada anteriormente, ejecuta [database/02_eliminacion_logica.sql](database/02_eliminacion_logica.sql) en esa base: Query Tool para PostgreSQL local o SQL Editor para Supabase. Si utilizas ambos modos, aplícalo en las dos bases. No vuelvas a cargar los datos iniciales.
+
+La migración añade `estado BOOLEAN NOT NULL DEFAULT TRUE`: los productos existentes quedan activos. Puede repetirse sin reactivar los que ya estén inactivos. Para una instalación nueva, `01_tablas_y_datos.sql` ya incluye la columna. Hibernate mantiene `ddl-auto=validate`, por lo que no crea esta columna automáticamente.
+
 ## 4. Iniciar y detener Cogas
 
 **Con PostgreSQL local encendido:**
@@ -129,7 +137,7 @@ Inicia Cogas en el modo que quieras comprobar. En **otra terminal**, desde `serv
 pwsh -NoProfile -File .\scripts\test-api.ps1 -BaseUrl http://127.0.0.1:8080
 ```
 
-Comprueba conexión, paginación, búsqueda parametrizada, resumen, tres servicios y registro, edición y eliminación. Crea un producto temporal y lo elimina al terminar; conserva los productos existentes. El resultado esperado empieza con `API verificada`.
+Comprueba conexión, paginación, búsqueda parametrizada, resumen, tres servicios y registro, edición y eliminación lógica. Crea un producto temporal y lo deja inactivo al terminar; conserva los productos existentes y el total de activos. Cada ejecución conserva una fila de prueba inactiva en PostgreSQL. El resultado esperado empieza con `API verificada`.
 
 ### Prueba desde la interfaz
 
@@ -309,14 +317,14 @@ Ahora el repositorio extiende `JpaRepository<Producto, Integer>`. Spring Data ap
 | Tarea | JDBC manual anterior | JPA/Hibernate actual |
 | --- | --- | --- |
 | Registrar y editar | Escribir INSERT/UPDATE y asignar sus parámetros | Preparar la entidad y usar `saveAndFlush` |
-| Buscar por ID | Ejecutar SELECT y recorrer su resultado | Usar `findById` |
+| Buscar por ID | Ejecutar SELECT y recorrer su resultado | Usar `findByIdProductoAndEstadoTrue` para consultar activos |
 | Transformar filas a entidades | Construir cada objeto leyendo `ResultSet` | Hibernate realiza el mapeo |
 | Consulta específica | SQL escrito en el repositorio | Método derivado o JPQL parametrizado |
 | Conexiones y transacciones | Gestión explícita con JDBC | Integración de JPA y transacciones de Spring sobre el pool configurado |
 
 Un `ResultSet` es un objeto JDBC que permite recorrer las filas devueltas por una consulta; no es un texto JSON. En nuestras consultas JPA es Hibernate quien trabaja con esos resultados, sin que el servicio recorra las filas manualmente. `ConexionDB` conserva una comprobación JDBC directa para verificar conectividad, esquema y permisos al iniciar.
 
-JPQL consulta entidades y sus atributos, en lugar de escribir directamente nombres de tablas y columnas. Por ejemplo, nuestra búsqueda usa `:buscar`, `:proveedor` y `:tipo` como parámetros. Hibernate genera el SQL y enlaza los valores; la entrada del usuario no se concatena en la consulta. Spring Data interpreta nombres como `findFirstByOrderByPrecioDescIdProductoAsc`; Hibernate no interpreta por sí solo el nombre de ese método.
+JPQL consulta entidades y sus atributos, en lugar de escribir directamente nombres de tablas y columnas. Por ejemplo, nuestra búsqueda usa `:buscar`, `:proveedor` y `:tipo` como parámetros y filtra `p.estado = true`. Hibernate genera el SQL y enlaza los valores; la entrada del usuario no se concatena en la consulta. Spring Data interpreta nombres como `findFirstByEstadoTrueOrderByPrecioDescIdProductoAsc`; Hibernate no interpreta por sí solo el nombre de ese método.
 
 ## 9. Recorrido completo de una consulta y su respuesta
 
@@ -333,7 +341,7 @@ sequenceDiagram
     participant P as PostgreSQL
     C->>W: HTTP GET /api/servicios/producto-mas-caro
     W->>S: masCaro()
-    S->>R: findFirstByOrderByPrecioDescIdProductoAsc()
+    S->>R: findFirstByEstadoTrueOrderByPrecioDescIdProductoAsc()
     R->>H: Consulta de la entidad
     H->>D: SQL con parametros
     D->>P: Ejecutar consulta
@@ -349,7 +357,7 @@ sequenceDiagram
 1. **El cliente envía HTTP.** Puede ser JavaScript en la interfaz o un cliente como PowerShell. La petición contiene método, ruta y encabezados; este GET no necesita un cuerpo JSON.
 2. **Spring MVC identifica el endpoint.** Relaciona el método HTTP y la ruta con las anotaciones del controlador. El filtro de la aplicación aplica límites y cabeceras; Spring también procesa y valida los parámetros necesarios.
 3. **El controlador llama al servicio.** El método `masCaro()` del controlador llama a `servicio.masCaro()` mediante una referencia Java ya inyectada.
-4. **El servicio llama al repositorio.** Ejecuta `productos.findFirstByOrderByPrecioDescIdProductoAsc()`. El criterio es mayor precio y, en caso de empate, menor identificador.
+4. **El servicio llama al repositorio.** Ejecuta `productos.findFirstByEstadoTrueOrderByPrecioDescIdProductoAsc()`. Considera solo activos, ordenados por mayor precio y, en caso de empate, menor identificador.
 5. **Spring Data JPA y Hibernate preparan la consulta.** Spring Data interpreta el método y usa JPA; Hibernate genera el SQL necesario y solicita una conexión del DataSource. El repositorio carga también las relaciones de tipo, proveedor y unidad mediante `@EntityGraph`.
 6. **Se consulta PostgreSQL.** Hibernate utiliza JDBC y el controlador PostgreSQL. PostgreSQL ejecuta la instrucción y devuelve sus resultados.
 7. **Hibernate realiza el mapeo.** Para esta consulta, construye la entidad `Producto` y sus relaciones a partir de las filas. El repositorio devuelve `Optional<Producto>`: un resultado con producto o vacío.
@@ -383,9 +391,22 @@ CRUD significa **Create, Read, Update, Delete**: crear, consultar, actualizar y 
 | --- | --- | --- | --- | --- |
 | Crear | POST `/api/productos` | JSON convertido a `ProductoRequest` | Validar, crear entidad y ejecutar `saveAndFlush` | 201, encabezado `Location` y `OperacionResponse` con ID y mensaje |
 | Consultar lista | GET `/api/productos` | Parámetros de búsqueda, filtros y paginación | Validar límites y consultar con `PageRequest` | 200 y `PaginaProductosResponse` |
-| Consultar uno | GET `/api/productos/{id}` | Identificador en la ruta | Buscar mediante `findById` y tratar el resultado vacío | 200 y `ProductoResponse` |
+| Consultar uno | GET `/api/productos/{id}` | Identificador en la ruta | Buscar mediante `findByIdProductoAndEstadoTrue` y tratar el resultado vacío | 200 y `ProductoResponse` |
 | Actualizar | PUT `/api/productos/{id}` | ID y JSON con todos los campos de `ProductoRequest` | Buscar el producto, validar, actualizar sus atributos y ejecutar `saveAndFlush` | 200 y `OperacionResponse` |
-| Eliminar | DELETE `/api/productos/{id}` | Identificador en la ruta | Buscar el producto, ejecutar `delete` y `flush` | 200 y `OperacionResponse` con el mensaje |
+| Eliminar | DELETE `/api/productos/{id}` | Identificador en la ruta | Buscar el producto activo, cambiar `estado` a `false` y ejecutar `saveAndFlush` | 200 y `OperacionResponse` con el mensaje |
+
+`estado` lo administra el backend: no se añade al JSON de POST/PUT. Un nuevo producto se crea activo y `ProductoResponse` incluye `estado`. DELETE conserva los datos en la tabla; GET por ID, PUT y otro DELETE sobre un producto inactivo responden 404. Listado, búsqueda, paginación, resumen y los tres servicios excluyen inactivos. No se ha añadido una operación de restauración ni una ruta para borrar físicamente.
+
+Para comprobar la conservación de los datos en pgAdmin o Supabase, consulta:
+
+```sql
+SELECT id_producto, descripcion, estado
+FROM panaderia.producto
+WHERE estado = false
+ORDER BY id_producto;
+```
+
+Los identificadores eliminados físicamente antes de este cambio no se recuperan automáticamente. La identidad de PostgreSQL continúa sin garantizar números consecutivos: una inserción fallida todavía puede consumir un número.
 
 En proveedores, tipos y unidades tenemos consulta y selección, sin CRUD de administración desde la API actual. Las tres consultas del curso son:
 
@@ -602,7 +623,7 @@ Elimina únicamente el producto temporal creado en esta práctica:
 await solicitarCogas('/productos/' + idPrueba, { method: 'DELETE' });
 ```
 
-Responde **200** con el mensaje de eliminación. Si después consultas el mismo ID, recibirás **404**, porque ya no existe. Al usar `solicitarCogas`, ese 404 se muestra y también genera un error en la consola; es lo esperado para esa comprobación.
+Responde **200** con el mensaje de eliminación. Si después consultas el mismo ID, recibirás **404**, porque el producto está inactivo. La fila sigue en PostgreSQL con `estado = false`. Al usar `solicitarCogas`, ese 404 se muestra y también genera un error en la consola; es lo esperado para esa comprobación.
 
 #### Qué observar y cómo explicarlo
 
@@ -617,7 +638,7 @@ En **F12 → Network**, selecciona la petición. **Headers → Request Method** 
 
 ### Alternativa: probar el CRUD desde PowerShell
 
-Inicia Cogas con el modo deseado según la sección 4. En otra terminal de PowerShell ejecuta el siguiente bloque. **Crea un producto temporal real, lo consulta, lo edita y lo elimina al terminar.** Si ya se recibió el identificador, el bloque `finally` intenta eliminarlo aunque falle un paso posterior.
+Inicia Cogas con el modo deseado según la sección 4. En otra terminal de PowerShell ejecuta el siguiente bloque. **Crea un producto temporal real, lo consulta, lo edita y lo elimina lógicamente al terminar.** Si ya se recibió el identificador, el bloque `finally` intenta desactivarlo aunque falle un paso posterior. La fila de prueba queda inactiva en PostgreSQL.
 
 ```powershell
 $ErrorActionPreference = 'Stop'

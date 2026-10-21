@@ -39,7 +39,7 @@ class ProductoServiceTest {
     @Test void normalizaPrecioSinPerderDecimales() {
         prepararGuardado();
         assertEquals(51, service.guardar(null, datos("4.80")));
-        verify(productos).saveAndFlush(argThat(p -> p.getPrecio().equals(new BigDecimal("4.80")) && p.getDescripcion().equals("Harina")));
+        verify(productos).saveAndFlush(argThat(p -> p.isEstado() && p.getPrecio().equals(new BigDecimal("4.80")) && p.getDescripcion().equals("Harina")));
     }
 
     @Test void rechazaPreciosInvalidosAntesDePersistir() {
@@ -84,20 +84,36 @@ class ProductoServiceTest {
     }
 
     @Test void catalogoVacioDevuelveNoEncontrado() {
-        when(productos.findFirstByOrderByPrecioDescIdProductoAsc()).thenReturn(Optional.empty());
+        when(productos.findFirstByEstadoTrueOrderByPrecioDescIdProductoAsc()).thenReturn(Optional.empty());
         assertThrows(NoSuchElementException.class, service::masCaro);
     }
 
     @Test void actualizarInexistenteDevuelveNoEncontrado() {
-        when(productos.findById(999)).thenReturn(Optional.empty());
+        when(productos.findByIdProductoAndEstadoTrue(999)).thenReturn(Optional.empty());
         assertThrows(NoSuchElementException.class, () -> service.guardar(999, datos("4.80")));
         verify(productos, never()).saveAndFlush(any(Producto.class));
     }
 
     @Test void eliminarInexistenteDevuelveNoEncontrado() {
-        when(productos.findById(999)).thenReturn(Optional.empty());
+        when(productos.findByIdProductoAndEstadoTrue(999)).thenReturn(Optional.empty());
         assertThrows(NoSuchElementException.class, () -> service.eliminar(999));
         verify(productos, never()).delete(any(Producto.class));
+    }
+
+    @Test void eliminarConservaElProductoYLoMarcaInactivo() {
+        var producto = new Producto("Harina", new BigDecimal("4.80"), new TipoProducto(1, "Tipo"),
+            new Proveedor(1, "20000000001", "Proveedor"), new UnidadMedida(1, "Kilogramo", "kg"));
+        ReflectionTestUtils.setField(producto, "idProducto", 51);
+        when(productos.findByIdProductoAndEstadoTrue(51)).thenReturn(Optional.of(producto));
+
+        service.eliminar(51);
+
+        assertFalse(producto.isEstado());
+        assertEquals(51, producto.getIdProducto());
+        assertEquals("Harina", producto.getDescripcion());
+        verify(productos).saveAndFlush(producto);
+        verify(productos, never()).delete(any(Producto.class));
+        verify(productos, never()).deleteById(anyInt());
     }
 
     @Test void jsonEscapaCaracteresYConservaDecimal() {
@@ -109,6 +125,7 @@ class ProductoServiceTest {
         String json = mapper.writeValueAsString(ProductoResponse.desde(producto));
         assertTrue(json.contains("\"precio\":4.80"));
         assertTrue(json.contains("\"descripcion\":\"Harina\""));
+        assertTrue(json.contains("\"estado\":true"));
         assertFalse(json.contains("hibernateLazyInitializer"));
     }
 

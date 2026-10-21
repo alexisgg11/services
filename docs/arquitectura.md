@@ -27,7 +27,7 @@ Opcionales: `DB_POOL_SIZE` (5, rango 1–20), `HTTP_THREADS` (8, rango 1–32), 
 
 | Tabla | Campos |
 | --- | --- |
-| producto | id_producto INTEGER identity PK, descripcion VARCHAR(150), precio NUMERIC(10,2), id_tipo/id_proveedor/id_unidad INTEGER FK |
+| producto | id_producto INTEGER identity PK, descripcion VARCHAR(150), precio NUMERIC(10,2), estado BOOLEAN NOT NULL DEFAULT TRUE, id_tipo/id_proveedor/id_unidad INTEGER FK |
 | tipo_producto | id_tipo INTEGER identity PK, descripcion VARCHAR(80) única |
 | proveedor | id_proveedor INTEGER identity PK, ruc VARCHAR(11) único, nombre VARCHAR(120) |
 | unidad_medida | id_unidad INTEGER identity PK, descripcion VARCHAR(50) única, simbolo VARCHAR(10) único |
@@ -38,7 +38,9 @@ La instalación se hace manualmente con `database/`. `spring.jpa.hibernate.ddl-a
 
 ## SQL y límites
 
-Los valores de búsqueda y filtros se enlazan mediante parámetros nombrados (`:buscar`, `:proveedor`, `:tipo`) en JPQL. El mayor precio se obtiene con `findFirstByOrderByPrecioDescIdProductoAsc`; guardar y eliminar usan los métodos del repositorio JPA. Hibernate genera el SQL y enlaza los valores con JDBC. No se concatena entrada del usuario en consultas.
+Los valores de búsqueda y filtros se enlazan mediante parámetros nombrados (`:buscar`, `:proveedor`, `:tipo`) en JPQL. El mayor precio se obtiene con `findFirstByEstadoTrueOrderByPrecioDescIdProductoAsc`. Eliminar cambia el estado a `false` y ejecuta `saveAndFlush`; no llama a `delete` del repositorio. Hibernate genera el SQL y enlaza los valores con JDBC. No se concatena entrada del usuario en consultas.
+
+La eliminación lógica conserva el ID y todos los campos. Listado, conteos, resumen y consultas de servicios filtran `estado = true`; la consulta individual usa `findByIdProductoAndEstadoTrue`. Un producto inactivo no se consulta, edita ni elimina otra vez desde la API. `ProductoRequest` no permite cambiar el estado; `ProductoResponse` lo incluye. La migración `database/02_eliminacion_logica.sql` prepara bases existentes sin recargar los datos ni reactivar filas.
 
 La paginación se ejecuta en PostgreSQL mediante `PageRequest` y `Page<Producto>`. Una página fuera de rango se ajusta a la última válida. Conteo y página usan la misma transacción de lectura con aislamiento repeatable read. El orden por ID es estable. El resumen usa un agregado JPQL; la vista no descarga todos los productos para calcular indicadores. Se desactiva `open-in-view`; los DTO se construyen con las relaciones cargadas por el repositorio.
 

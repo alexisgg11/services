@@ -9,6 +9,8 @@ La interfaz y el backend Java 25 con Spring Boot siguen en tu equipo. Solo Postg
 3. Para usar los datos iniciales, ejecuta `database/01_tablas_y_datos.sql` en SQL Editor. No ejecutes `00_crear_base.sql`: Supabase ya tiene una base llamada `postgres`.
 4. Para trasladar cambios existentes, exporta y restaura el esquema `panaderia` con sus datos y secuencias, omitiendo propietarios y permisos locales. Usa ese respaldo en lugar de cargar los datos iniciales. La base local se conserva.
 
+Si la base ya estaba creada antes de incorporar la eliminación lógica, ejecuta `database/02_eliminacion_logica.sql` antes de iniciar el backend actualizado. Aplícalo por separado en local y Supabase; no recargues los datos iniciales.
+
 ## 2. Configurar una conexión separada
 
 Desde la raíz del repositorio, copia la plantilla solo si el archivo privado todavía no existe:

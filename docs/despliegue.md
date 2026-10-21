@@ -31,6 +31,8 @@ Selecciona Free en ambas plataformas. No actives complementos de pago. Sin méto
 
 Usamos JDBC, no la API pública de Supabase: no hacen falta claves `anon` ni `service_role`. El esquema ya activa RLS; el usuario servidor debe disponer de los permisos adecuados. No abras políticas públicas para resolver un fallo de conexión.
 
+Para una base existente, aplica `database/02_eliminacion_logica.sql` antes de desplegar esta versión. Añade el estado necesario para eliminar lógicamente; no vuelvas a cargar los datos iniciales.
+
 ## 2. Desplegar en Render
 
 1. Inicia sesión en Render. Crea un **Web Service**, conecta `alexisgg11/services` y selecciona `main`.
